@@ -29,7 +29,7 @@ namespace dy.net.service
             return new DatabaseStatusDto
             {
                 DbType = settings.DbType,
-                CanMigrate = true,
+                CanMigrate = !_configurationService.HasDockerDatabaseOverride,
                 IsExternal = settings.DbType != DatabaseKinds.Sqlite,
                 RequiresSelection = settings.DbType == DatabaseKinds.Sqlite &&
                     !_configurationService.HasPersistedSelection
@@ -38,6 +38,11 @@ namespace dy.net.service
 
         public void ConfirmSqliteSelection()
         {
+            if (_configurationService.HasDockerDatabaseOverride)
+            {
+                throw new InvalidOperationException("当前数据库由 Docker Compose 环境变量指定，请修改 Compose 配置后重建容器");
+            }
+
             var current = _configurationService.GetActiveSettings();
             if (current.DbType != DatabaseKinds.Sqlite)
             {
@@ -52,6 +57,11 @@ namespace dy.net.service
             CancellationToken cancellationToken = default,
             Action<DatabaseMigrationProgress> reportProgress = null)
         {
+            if (_configurationService.HasDockerDatabaseOverride)
+            {
+                throw new InvalidOperationException("当前数据库由 Docker Compose 环境变量指定，不能通过运行时迁移覆盖");
+            }
+
             if (!await MigrationLock.WaitAsync(0, cancellationToken))
             {
                 throw new InvalidOperationException("已有数据库迁移任务正在执行，请勿重复提交");

@@ -69,6 +69,11 @@ namespace dy.net.service
 
         public DatabaseMigrationJobStatusDto Start(DatabaseMigrationRequest request)
         {
+            if (_configurationService.HasDockerDatabaseOverride)
+            {
+                throw new InvalidOperationException("当前数据库由 Docker Compose 环境变量指定，请修改 Compose 配置后重建容器");
+            }
+
             // Validate the shape before accepting the background task. Connection and
             // empty-target checks are intentionally performed by the worker.
             _configurationService.CreateTargetSettings(request);

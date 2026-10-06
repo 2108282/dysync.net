@@ -33,10 +33,32 @@ namespace dy.net.service
         public string MigrationHistoryFilePath =>
             Path.Combine(_databaseDirectory, "database-migration-history.json");
 
-        public bool HasPersistedSelection => File.Exists(SettingsFilePath);
+        public bool HasDockerDatabaseOverride =>
+            string.Equals(_configuration["deploy"], "docker", StringComparison.OrdinalIgnoreCase) &&
+            DockerDatabaseKeys.Any(key => !string.IsNullOrWhiteSpace(_configuration[key]));
+
+        public bool HasPersistedSelection => File.Exists(SettingsFilePath) || HasDockerDatabaseOverride;
+
+        private static readonly string[] DockerDatabaseKeys =
+        {
+            "DB_TYPE",
+            "DB_CONNECTION_STRING",
+            "DB_HOST",
+            "DB_PORT",
+            "DB_NAME",
+            "DB_USER",
+            "DB_PASSWORD"
+        };
 
         public DatabaseSettings GetActiveSettings()
         {
+            // Explicit Compose settings are authoritative and intentionally override
+            // database.json so container redeploys always use the declared database.
+            if (HasDockerDatabaseOverride)
+            {
+                return GetDockerDatabaseSettings();
+            }
+
             if (File.Exists(SettingsFilePath))
             {
                 try
@@ -69,6 +91,49 @@ namespace dy.net.service
 
             Validate(fallback, allowSqliteWithoutConnectionString: false);
             return fallback;
+        }
+
+        private DatabaseSettings GetDockerDatabaseSettings()
+        {
+            var dbType = _configuration["DB_TYPE"];
+            if (!DatabaseKinds.IsSupported(dbType))
+            {
+                throw new InvalidOperationException(
+                    "Docker 数据库配置已启用，但 DB_TYPE 必须是 Sqlite、MySql 或 PostgreSql");
+            }
+
+            var connectionString = _configuration["DB_CONNECTION_STRING"];
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                return CreateTargetSettings(dbType, connectionString);
+            }
+
+            var normalizedType = DatabaseKinds.Normalize(dbType);
+            if (normalizedType == DatabaseKinds.Sqlite)
+            {
+                return CreateTargetSettings(normalizedType, CreateSqliteConnectionString());
+            }
+
+            int? port = null;
+            var portValue = _configuration["DB_PORT"];
+            if (!string.IsNullOrWhiteSpace(portValue))
+            {
+                if (!int.TryParse(portValue, out var parsedPort))
+                {
+                    throw new InvalidOperationException("DB_PORT 必须是有效数字");
+                }
+                port = parsedPort;
+            }
+
+            return CreateTargetSettings(new DatabaseMigrationRequest
+            {
+                DbType = normalizedType,
+                Host = _configuration["DB_HOST"],
+                Port = port,
+                DatabaseName = _configuration["DB_NAME"],
+                UserName = _configuration["DB_USER"],
+                Password = _configuration["DB_PASSWORD"]
+            });
         }
 
         public DatabaseSettings CreateTargetSettings(string dbType, string connectionString)

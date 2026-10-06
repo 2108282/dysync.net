@@ -15,7 +15,7 @@
         <a-button :loading="progressLoading" :disabled="refreshRemaining > 0" @click="refreshProgress">
           {{ refreshRemaining > 0 ? `${refreshRemaining} 秒后可刷新` : '刷新迁移进度' }}
         </a-button>
-        <a-button type="primary" :disabled="jobRunning" @click="openMigration">迁移数据库</a-button>
+        <a-button type="primary" :disabled="jobRunning || !status.canMigrate" @click="openMigration">迁移数据库</a-button>
       </a-space>
     </div>
 
@@ -35,6 +35,14 @@
         <span class="overview-value">{{ migrationStatus.history.length }} 条</span>
       </div>
     </div>
+
+    <a-alert
+      v-if="!status.canMigrate"
+      type="info"
+      show-icon
+      message="当前数据库由 Docker Compose 环境变量固定；修改数据库请更新 Compose 配置并重建容器。"
+      class="environment-database-tip"
+    />
 
     <div v-if="migrationStatus.state !== 'Idle'" class="migration-progress">
       <div class="migration-progress-header">
