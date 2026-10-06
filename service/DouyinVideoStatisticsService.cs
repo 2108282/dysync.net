@@ -231,7 +231,7 @@ namespace dy.net.service
             var query = _db.Queryable<DouyinVideoAuthorStatistic>()
                 .WhereIF(!string.IsNullOrWhiteSpace(keyword), x => x.Name.Contains(keyword));
             var totalCount = await query.CountAsync();
-            var rows = _db.Queryable<DouyinVideoAuthorStatistic>()
+            var rows =await _db.Queryable<DouyinVideoAuthorStatistic>()
                 .WhereIF(!string.IsNullOrWhiteSpace(keyword), x => x.Name.Contains(keyword))
                 .OrderBy(x => x.VideoCount, OrderByType.Desc)
                 .OrderBy(x => x.Name, OrderByType.Asc)

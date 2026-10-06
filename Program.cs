@@ -278,16 +278,16 @@ namespace dy.net
                 //Serilog.Log.Debug("isRestart1=" + config.IsFirstRunning);
                 //await cookieService.UpdateCookieToSupportOldVersionAsync();
 
-                if (!isDevelopment)
-                {
-                    var cookie = await cookieService.GetOpendCookies();
-                    if (cookie != null && cookie.Any())
-                    {
-                        // 启动定时任务
-                        var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
-                        await quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
-                    }
-                }
+                //if (!isDevelopment)
+                //{
+                //    var cookie = await cookieService.GetOpendCookies();
+                //    if (cookie != null && cookie.Any())
+                //    {
+                //        // 启动定时任务
+                //        var quartzJobService = services.GetRequiredService<DouyinQuartzJobService>();
+                //        await quartzJobService.InitOrReStartAllJobs(config?.Cron <= 0 ? "30" : config.Cron.ToString());
+                //    }
+                //}
             }
             catch (Exception ex)
             {
