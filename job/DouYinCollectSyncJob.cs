@@ -27,7 +27,7 @@ namespace dy.net.job
 
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
-            return Path.Combine(cookie.SavePath, "author");
+            return Path.Combine(GetStorageBasePath(cookie, douyinCommonService.GetConfig()), "author");
         }
 
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)
@@ -61,11 +61,12 @@ namespace dy.net.job
             string videoFolderName = DouyinFileNameHelper.SanitizeLinuxFileName(item?.Desc, item?.AwemeId, true);
 
             // 4. 简化文件夹路径拼接+存在判断（核心逻辑不变）
-            string folder = Path.Combine(cookie.SavePath, authorFolder, videoFolderName);
+            var storageBasePath = GetStorageBasePath(cookie, config);
+            string folder = Path.Combine(storageBasePath, authorFolder, videoFolderName);
             if (Directory.Exists(folder))
             {
                 // 文件夹存在则拼接AwemeId（保留你的原逻辑）
-                folder = Path.Combine(cookie.SavePath, authorFolder, $"{videoFolderName}_{item.AwemeId}");
+                folder = Path.Combine(storageBasePath, authorFolder, $"{videoFolderName}_{item.AwemeId}");
             }
             else
             {

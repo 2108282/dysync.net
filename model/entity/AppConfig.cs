@@ -76,6 +76,25 @@ namespace dy.net.model.entity
         public bool AutoDistinct { get; set; }
 
         /// <summary>
+        /// 按数据库记录判重，不检查视频文件是否仍在原路径。
+        /// </summary>
+        public bool SkipFileExistenceCheck { get; set; }
+
+        /// <summary>Additional storage roots, serialized as a JSON string array.</summary>
+        [SugarColumn(Length = -1, IsNullable = true)]
+        public string StorageExpansionRoots { get; set; }
+
+        /// <summary>Switch to another root when remaining space falls below this amount in GB.</summary>
+        public int StorageMinFreeSpaceGb { get; set; } = 10;
+
+        /// <summary>0 uses the existing per-account path; 1..N selects an expansion root per video type.</summary>
+        public int ActiveCollectStorageRootIndex { get; set; }
+        public int ActiveFavoriteStorageRootIndex { get; set; }
+        public int ActiveFollowedStorageRootIndex { get; set; }
+        public int ActiveMixStorageRootIndex { get; set; }
+        public int ActiveSeriesStorageRootIndex { get; set; }
+
+        /// <summary>
         /// 去重优先级配置，json字符串格式存储
         /// </summary>
         [SugarColumn(Length = 500, IsNullable = true)]

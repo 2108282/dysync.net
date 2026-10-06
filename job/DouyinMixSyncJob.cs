@@ -29,18 +29,9 @@ namespace dy.net.job
         {
             if (cate != null)
             {
-                if (string.IsNullOrWhiteSpace(cookie.MixPath))
-                {
-                    var folder = Path.Combine(cookie.SavePath, VideoType.GetDesc(), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                    return folder;
-                }
-                else
-                {
-                    var folder = Path.Combine(cookie.MixPath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
-                    if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
-                    return folder;
-                }
+                var folder = Path.Combine(GetStorageBasePath(cookie, config), DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, cate.Name, true));
+                if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+                return folder;
             }
             else
             {
@@ -50,11 +41,7 @@ namespace dy.net.job
 
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
-            if (string.IsNullOrEmpty(cookie.MixPath))
-
-                return Path.Combine(cookie.SavePath, "author");
-            else
-                return Path.Combine(cookie.MixPath, "author");
+            return Path.Combine(GetStorageBasePath(cookie, douyinCommonService.GetConfig()), "author");
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using ClockSnowFlake;
+using dy.net.model.dto;
 using dy.net.model.entity;
 using dy.net.utils;
 using SqlSugar;
@@ -107,6 +108,36 @@ namespace dy.net.service
 
         }
 
+        public async Task<bool> UpdateStorageRootIndexAsync(VideoTypeEnum videoType, int rootIndex)
+        {
+            var config = await sqlSugarClient.Queryable<AppConfig>().FirstAsync();
+            if (config == null)
+                return false;
+
+            switch (videoType)
+            {
+                case VideoTypeEnum.dy_favorite:
+                    return await sqlSugarClient.Updateable<AppConfig>()
+                        .SetColumns(x => x.ActiveFavoriteStorageRootIndex == rootIndex)
+                        .Where(x => x.Id == config.Id).ExecuteCommandAsync() > 0;
+                case VideoTypeEnum.dy_follows:
+                    return await sqlSugarClient.Updateable<AppConfig>()
+                        .SetColumns(x => x.ActiveFollowedStorageRootIndex == rootIndex)
+                        .Where(x => x.Id == config.Id).ExecuteCommandAsync() > 0;
+                case VideoTypeEnum.dy_mix:
+                    return await sqlSugarClient.Updateable<AppConfig>()
+                        .SetColumns(x => x.ActiveMixStorageRootIndex == rootIndex)
+                        .Where(x => x.Id == config.Id).ExecuteCommandAsync() > 0;
+                case VideoTypeEnum.dy_series:
+                    return await sqlSugarClient.Updateable<AppConfig>()
+                        .SetColumns(x => x.ActiveSeriesStorageRootIndex == rootIndex)
+                        .Where(x => x.Id == config.Id).ExecuteCommandAsync() > 0;
+                default:
+                    return await sqlSugarClient.Updateable<AppConfig>()
+                        .SetColumns(x => x.ActiveCollectStorageRootIndex == rootIndex)
+                        .Where(x => x.Id == config.Id).ExecuteCommandAsync() > 0;
+            }
+        }
         /// <summary>
         /// 重置所有Cookie的同步状态为0
         /// </summary>
