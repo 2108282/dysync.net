@@ -1,69 +1,66 @@
 <template>
   <main class="author-videos-page">
 
-    <section class="author-switcher">
-      <button class="switcher-toggle" type="button" :aria-expanded="filterExpanded" @click="filterExpanded = !filterExpanded">
-        <span class="switcher-toggle-icon">⌕</span>
-        <span>筛选 / 切换博主</span>
-        <span class="switcher-current">当前：{{ selectedAuthorName || '未知博主' }}</span>
-        <span class="switcher-chevron" :class="{ expanded: filterExpanded }">⌄</span>
-      </button>
-
-      <div v-if="filterExpanded" class="switcher-body">
-        <label class="author-search">
-          <span aria-hidden="true">⌕</span>
-          <input v-model="authorSearchInput" type="search" placeholder="输入博主名称搜索" autocomplete="off" />
-          <button v-if="authorSearchInput" type="button" aria-label="清空搜索" @click="authorSearchInput = ''">×</button>
-        </label>
-
-        <div v-if="authorSearchInput.trim()" class="author-search-results">
-          <span v-if="authorSearching" class="search-hint">正在搜索…</span>
-          <button
-            v-for="author in searchResults"
-            :key="author.uperId || author.name"
-            type="button"
-            class="switch-author search-author"
-            :class="{ active: isSelectedAuthor(author) }"
-            @click="selectAuthor(author)"
-          >
-            <img v-if="author.icon" :src="author.icon" :alt="author.name" />
-            <span v-else class="switch-avatar-fallback">{{ author.name.slice(0, 1) }}</span>
-            <span class="switch-author-name">{{ author.name }}</span>
-            <span class="switch-author-count">{{ author.count }}</span>
-          </button>
-          <span v-if="!authorSearching && !searchResults.length" class="search-hint">没有找到匹配的博主</span>
+    <section class="author-banner">
+      <div class="banner-glow banner-glow-one"></div>
+      <div class="banner-glow banner-glow-two"></div>
+      <div class="author-banner-content">
+        <div class="author-banner-avatar">
+          <img v-if="bannerAvatar" :src="bannerAvatar" :alt="selectedAuthorName || '博主头像'" />
+          <span v-else>{{ (selectedAuthorName || '博').slice(0, 1) }}</span>
         </div>
-
-        <div v-else class="switch-author-row" aria-label="视频数量前10位博主">
-          <button
-            v-for="author in switchAuthors"
-            :key="author.uperId || author.name"
-            type="button"
-            class="switch-author"
-            :class="{ active: isSelectedAuthor(author) }"
-            :title="`${author.name} · ${author.count} 个视频`"
-            @click="selectAuthor(author)"
-          >
-            <img v-if="author.icon" :src="author.icon" :alt="author.name" />
-            <span v-else class="switch-avatar-fallback">{{ author.name.slice(0, 1) }}</span>
-            <span class="switch-author-name">{{ author.name }}</span>
-            <span class="switch-author-count">{{ author.count }}</span>
-          </button>
-          <span v-if="!switchAuthors.length && !topAuthorsLoading" class="search-hint">暂无可切换博主</span>
-          <a-spin v-if="topAuthorsLoading" size="small" />
+        <div class="author-banner-info">
+          <div class="author-title-row">
+            <h1>{{ authorProfile.name || selectedAuthorName || '未知博主' }}</h1>
+            <span v-if="authorProfile.enterprise" class="author-verified">{{ authorProfile.enterprise }}</span>
+          </div>
+          <p class="author-signature">{{ authorProfile.signature || '这个博主还没有填写个人签名' }}</p>
+          <div class="author-meta">
+            <span v-if="authorProfile.douyinNo">抖音号 {{ authorProfile.douyinNo }}</span>
+            <span>{{ total }} 个已同步视频</span>
+          </div>
         </div>
+        <div class="banner-caption">VIDEO GALLERY</div>
       </div>
     </section>
 
     <section class="poster-section" aria-label="博主视频列表">
+      <div class="poster-toolbar">
+        <div class="video-type-tabs" role="tablist" aria-label="视频类型筛选">
+          <button
+            type="button"
+            class="video-type-tab"
+            :class="{ active: activeVideoType === null }"
+            @click="selectVideoType(null)"
+          >
+            全部 <span>{{ allVideoCount }}</span>
+          </button>
+          <button
+            v-for="type in authorVideoTypes"
+            :key="type.type"
+            type="button"
+            class="video-type-tab"
+            :class="{ active: activeVideoType === type.type }"
+            @click="selectVideoType(type.type)"
+          >
+            {{ type.name }} <span>{{ type.count }}</span>
+          </button>
+        </div>
+        <label class="video-title-search">
+          <span aria-hidden="true">⌕</span>
+          <input v-model="titleSearchInput" type="search" placeholder="搜索当前博主的视频标题" autocomplete="off" />
+          <button v-if="titleSearchInput" type="button" aria-label="清空标题搜索" @click="titleSearchInput = ''">×</button>
+        </label>
+      </div>
+
       <div v-if="loading && videos.length === 0" class="state-panel">
         <a-spin size="large" />
         <span>正在加载视频…</span>
       </div>
       <div v-else-if="!loading && videos.length === 0" class="state-panel empty-state">
         <div class="empty-mark">▧</div>
-        <strong>还没有已同步的视频</strong>
-        <span>该作者的视频完成同步后会显示在这里</span>
+        <strong>{{ hasActiveFilter ? '没有符合条件的视频' : '还没有已同步的视频' }}</strong>
+        <span>{{ hasActiveFilter ? '试试更换类型或缩短标题关键词' : '该作者的视频完成同步后会显示在这里' }}</span>
       </div>
 
       <div v-else class="poster-grid">
@@ -137,25 +134,30 @@ interface AuthorVideo {
   videoCoverUrl?: string;
   createTime?: string;
   viedoTypeStr?: string;
+  authorAvatar?: string;
+  authorAvatarUrl?: string;
 }
 
-interface AuthorOption {
+interface AuthorVideoType {
+  type: number;
   name: string;
   count: number;
-  icon: string;
-  uperId?: string;
 }
 
 const PAGE_SIZE = 48;
 const route = useRoute();
-const filterExpanded = ref(false);
-const topAuthors = ref<AuthorOption[]>([]);
-const topAuthorsLoading = ref(false);
-const authorSearchInput = ref('');
-const searchResults = ref<AuthorOption[]>([]);
-const authorSearching = ref(false);
-const searchedAuthorKeys = ref(new Set<string>());
+const authorProfile = ref({
+  name: '',
+  icon: '',
+  signature: '',
+  enterprise: '',
+  douyinNo: '',
+});
 const videos = ref<AuthorVideo[]>([]);
+const authorVideoTypes = ref<AuthorVideoType[]>([]);
+const activeVideoType = ref<number | null>(null);
+const titleSearchInput = ref('');
+const titleSearchKeyword = ref('');
 const activeVideo = ref<AuthorVideo | null>(null);
 const playError = ref(false);
 const total = ref(0);
@@ -165,21 +167,20 @@ const hasMore = ref(true);
 const errorMessage = ref('');
 const loadMoreRef = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | null = null;
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-let searchVersion = 0;
 let videosRequestVersion = 0;
 
 const queryValue = (value: unknown) => Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
 const selectedAuthorId = ref(queryValue(route.query.authorId));
 const selectedAuthorName = ref(queryValue(route.query.authorName));
-const switchAuthors = computed(() => {
-  if (authorSearchInput.value.trim()) return [];
-  return topAuthors.value.filter(author => !searchedAuthorKeys.value.has(authorKey(author)));
-});
+const routeAuthorIcon = queryValue(route.query.authorIcon);
+const bannerAvatar = computed(() => authorProfile.value.icon || routeAuthorIcon || videos.value[0]?.authorAvatarUrl || videos.value[0]?.authorAvatar || '');
+const allVideoCount = computed(() => authorVideoTypes.value.reduce((sum, item) => sum + item.count, 0) || total.value);
+const hasActiveFilter = computed(() => activeVideoType.value !== null || !!titleSearchKeyword.value);
+let titleSearchTimer: ReturnType<typeof setTimeout> | undefined;
 
 onMounted(async () => {
   document.title = `${selectedAuthorName.value || '博主'} · 视频海报墙`;
-  await Promise.all([loadVideos(), loadTopAuthors()]);
+  await Promise.all([loadVideos(), loadAuthorProfile(), loadAuthorVideoTypes()]);
   observer = new IntersectionObserver(
     entries => {
       if (entries[0]?.isIntersecting) void loadVideos();
@@ -191,19 +192,20 @@ onMounted(async () => {
 
 onUnmounted(() => {
   observer?.disconnect();
-  if (searchTimer) clearTimeout(searchTimer);
+  if (titleSearchTimer) clearTimeout(titleSearchTimer);
 });
 
-watch(authorSearchInput, keyword => {
-  if (searchTimer) clearTimeout(searchTimer);
-  const normalizedKeyword = keyword.trim();
-  searchResults.value = [];
-  if (!normalizedKeyword) {
-    authorSearching.value = false;
-    return;
-  }
-  authorSearching.value = true;
-  searchTimer = setTimeout(() => void searchAuthors(normalizedKeyword), 250);
+watch(loadMoreRef, element => {
+  observer?.disconnect();
+  if (element) observer?.observe(element);
+});
+
+watch(titleSearchInput, keyword => {
+  if (titleSearchTimer) clearTimeout(titleSearchTimer);
+  titleSearchTimer = setTimeout(() => {
+    titleSearchKeyword.value = keyword.trim();
+    resetVideos();
+  }, 300);
 });
 
 async function loadVideos() {
@@ -220,6 +222,8 @@ async function loadVideos() {
       PAGE_SIZE,
       requestedAuthorId,
       requestedAuthorName,
+      titleSearchKeyword.value,
+      activeVideoType.value,
     );
     if (requestVersion !== videosRequestVersion) return;
     if (response?.code !== 0 || !response?.data) {
@@ -239,60 +243,49 @@ async function loadVideos() {
   }
 }
 
-async function loadTopAuthors() {
-  topAuthorsLoading.value = true;
+async function loadAuthorVideoTypes() {
   try {
-    const response = await useApiStore().VideoAuthorStatics(1, 10);
-    if (response?.code === 0) topAuthors.value = response.data?.data ?? [];
+    const response = await useApiStore().AuthorVideoTypes(
+      selectedAuthorId.value,
+      selectedAuthorName.value,
+    );
+    if (response?.code === 0) {
+      authorVideoTypes.value = (response.data ?? []) as AuthorVideoType[];
+    }
   } catch (error) {
-    console.error('加载热门博主失败：', error);
-  } finally {
-    topAuthorsLoading.value = false;
+    console.error('加载博主视频类型失败：', error);
   }
 }
 
-async function searchAuthors(keyword: string) {
-  const requestVersion = ++searchVersion;
-  try {
-    const response = await useApiStore().VideoAuthorOptions(keyword, 10);
-    if (requestVersion !== searchVersion || keyword !== authorSearchInput.value.trim()) return;
-    const results = (response?.code === 0 ? response.data?.data ?? [] : []) as AuthorOption[];
-    searchResults.value = results;
-    const nextKeys = new Set(searchedAuthorKeys.value);
-    results.forEach(author => nextKeys.add(authorKey(author)));
-    searchedAuthorKeys.value = nextKeys;
-  } catch (error) {
-    if (requestVersion === searchVersion) console.error('搜索博主失败：', error);
-  } finally {
-    if (requestVersion === searchVersion) authorSearching.value = false;
-  }
+function selectVideoType(type: number | null) {
+  if (activeVideoType.value === type) return;
+  activeVideoType.value = type;
+  resetVideos();
 }
 
-function authorKey(author: AuthorOption) {
-  return author.uperId || author.name.trim().toLocaleLowerCase();
-}
-
-function isSelectedAuthor(author: AuthorOption) {
-  return selectedAuthorId.value
-    ? selectedAuthorId.value === author.uperId
-    : selectedAuthorName.value === author.name;
-}
-
-async function selectAuthor(author: AuthorOption) {
-  if (isSelectedAuthor(author)) return;
+function resetVideos() {
   videosRequestVersion++;
-  selectedAuthorId.value = author.uperId || '';
-  selectedAuthorName.value = author.name;
-  authorSearchInput.value = '';
-  searchResults.value = [];
   videos.value = [];
   total.value = 0;
   pageIndex.value = 0;
   hasMore.value = true;
   loading.value = false;
   errorMessage.value = '';
-  document.title = `${author.name} · 视频海报墙`;
-  await loadVideos();
+  void loadVideos();
+}
+
+async function loadAuthorProfile() {
+  try {
+    const response = await useApiStore().AuthorVideoProfile(
+      selectedAuthorId.value,
+      selectedAuthorName.value,
+    );
+    if (response?.code === 0 && response.data) {
+      authorProfile.value = { ...authorProfile.value, ...response.data };
+    }
+  } catch (error) {
+    console.error('加载博主资料失败：', error);
+  }
 }
 
 function playVideo(video: AuthorVideo) {
@@ -326,27 +319,31 @@ function hideBrokenPoster(event: Event) {
     linear-gradient(145deg, #0c1421, #111b2b 55%, #0b1320);
 }
 
-.author-switcher { max-width: 1600px; margin: 0 auto 24px; overflow: hidden; border: 1px solid rgba(180, 203, 235, .12); border-radius: 15px; background: rgba(20, 32, 49, .68); }
-.switcher-toggle { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 0 18px; border: 0; color: #dce8f8; text-align: left; background: transparent; cursor: pointer; }
-.switcher-toggle-icon { color: #81baff; font-size: 22px; }
-.switcher-current { overflow: hidden; margin-left: 8px; color: #92a4bc; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.switcher-chevron { margin-left: auto; color: #91a8c6; transition: transform .2s ease; }
-.switcher-chevron.expanded { transform: rotate(180deg); }
-.switcher-body { padding: 0 16px 15px; border-top: 1px solid rgba(180, 203, 235, .08); }
-.author-search { display: flex; align-items: center; gap: 10px; max-width: 420px; height: 40px; margin: 14px 0; padding: 0 12px; border: 1px solid rgba(180, 203, 235, .16); border-radius: 10px; color: #82a3cc; background: rgba(5, 13, 24, .38); }
-.author-search input { width: 100%; border: 0; outline: 0; color: #edf3fc; background: transparent; }
-.author-search input::placeholder { color: #778ba5; }
-.author-search > button { border: 0; color: #a9bad0; font-size: 20px; background: transparent; cursor: pointer; }
-.switch-author-row, .author-search-results { display: flex; align-items: stretch; gap: 9px; min-height: 68px; overflow-x: auto; padding: 3px 1px 8px; scrollbar-width: thin; }
-.switch-author { display: flex; align-items: center; gap: 8px; min-width: 160px; max-width: 220px; padding: 8px 11px; border: 1px solid rgba(180, 203, 235, .1); border-radius: 11px; color: #dce8f8; background: rgba(255, 255, 255, .035); cursor: pointer; }
-.switch-author:hover, .switch-author.active { border-color: rgba(91, 163, 255, .55); background: rgba(56, 126, 204, .16); }
-.switch-author img, .switch-avatar-fallback { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; overflow: hidden; border-radius: 50%; object-fit: cover; background: linear-gradient(135deg, #397fcb, #8a61c5); }
-.switch-avatar-fallback { color: white; }
-.switch-author-name { overflow: hidden; max-width: 100px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.switch-author-count { margin-left: auto; color: #91a8c6; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.search-author { min-width: 190px; }
-.search-hint { align-self: center; padding: 0 8px; color: #899bb2; font-size: 12px; white-space: nowrap; }
+.author-banner { position: relative; max-width: 1600px; min-height: 188px; margin: 0 auto 28px; overflow: hidden; border: 1px solid rgba(180, 203, 235, .14); border-radius: 20px; background: linear-gradient(112deg, rgba(25, 42, 64, .98), rgba(18, 30, 47, .88)); box-shadow: 0 20px 54px rgba(0, 0, 0, .18); }
+.author-banner-content { position: relative; z-index: 1; display: flex; align-items: center; gap: 24px; min-height: 188px; padding: 26px clamp(20px, 4vw, 48px); }
+.banner-glow { position: absolute; width: 280px; height: 280px; border-radius: 50%; filter: blur(2px); pointer-events: none; }
+.banner-glow-one { top: -190px; right: 12%; background: rgba(68, 134, 226, .22); }
+.banner-glow-two { right: -120px; bottom: -220px; background: rgba(146, 88, 201, .16); }
+.author-banner-avatar { display: grid; place-items: center; width: 112px; height: 112px; flex: 0 0 auto; overflow: hidden; border: 3px solid rgba(210, 226, 252, .62); border-radius: 50%; color: #fff; font-size: 38px; background: linear-gradient(135deg, #5494dd, #9b67c8); box-shadow: 0 8px 28px rgba(4, 10, 20, .35); }
+.author-banner-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.author-banner-info { min-width: 0; }
+.author-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.author-title-row h1 { overflow: hidden; margin: 0; color: #f4f7fc; font-size: clamp(23px, 3vw, 32px); font-weight: 700; letter-spacing: .01em; text-overflow: ellipsis; }
+.author-verified { padding: 4px 9px; border: 1px solid rgba(115, 183, 255, .28); border-radius: 999px; color: #aad4ff; font-size: 11px; background: rgba(63, 141, 224, .13); }
+.author-signature { overflow: hidden; max-width: min(780px, 75vw); margin: 10px 0 14px; color: #aebed2; font-size: 14px; line-height: 1.6; text-overflow: ellipsis; }
+.author-meta { display: flex; flex-wrap: wrap; gap: 9px; }
+.author-meta span { padding: 5px 10px; border: 1px solid rgba(177, 200, 232, .12); border-radius: 999px; color: #c5d3e5; font-size: 11px; background: rgba(7, 15, 26, .24); }
+.banner-caption { margin-left: auto; color: rgba(173, 197, 228, .57); font-size: 11px; font-weight: 600; letter-spacing: .22em; white-space: nowrap; }
 .poster-section { max-width: 1600px; margin: 0 auto; }
+.poster-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.video-type-tabs { display: flex; align-items: center; gap: 8px; min-width: 0; overflow-x: auto; padding: 3px 1px 7px; scrollbar-width: thin; }
+.video-type-tab { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; min-height: 36px; padding: 0 13px; border: 1px solid rgba(180, 203, 235, .13); border-radius: 999px; color: #a9bad0; font-size: 12px; background: rgba(255, 255, 255, .035); cursor: pointer; transition: border-color .18s ease, background .18s ease, color .18s ease; }
+.video-type-tab:hover, .video-type-tab.active { border-color: rgba(102, 170, 255, .5); color: #edf5ff; background: rgba(65, 132, 211, .2); }
+.video-type-tab span { color: #8fa8c8; font-size: 10px; font-variant-numeric: tabular-nums; }
+.video-title-search { display: flex; align-items: center; gap: 9px; width: min(330px, 34%); min-width: 210px; height: 38px; flex: 0 0 auto; padding: 0 12px; border: 1px solid rgba(180, 203, 235, .15); border-radius: 10px; color: #82a3cc; background: rgba(5, 13, 24, .34); }
+.video-title-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: #edf3fc; font-size: 12px; background: transparent; }
+.video-title-search input::placeholder { color: #778ba5; }
+.video-title-search > button { border: 0; color: #a9bad0; font-size: 19px; background: transparent; cursor: pointer; }
 .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 20px; }
 .poster-card { overflow: hidden; border: 1px solid rgba(180, 203, 235, .12); border-radius: 15px; background: #172438; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
 .poster-card:hover { transform: translateY(-4px); box-shadow: 0 14px 32px rgba(0, 0, 0, .3); }
@@ -366,17 +363,25 @@ function hideBrokenPoster(event: Event) {
 .state-panel strong { color: #e4edf9; font-size: 17px; }
 .state-panel span { color: #8fa1b8; }
 .error-message { margin: 0 auto 18px; color: #ff9b9b; text-align: center; }
-.video-player-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(3, 8, 15, .82); backdrop-filter: blur(8px); }
-.video-player-dialog { display: flex; flex-direction: column; width: min(960px, 96vw); max-height: 92vh; overflow: hidden; border: 1px solid rgba(180, 203, 235, .18); border-radius: 16px; background: #101b2a; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
-.video-player-header { display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 8px 14px 8px 18px; }
+.video-player-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: stretch; padding: 0; background: #000; }
+.video-player-dialog { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100dvh; max-height: none; overflow: hidden; border: 0; border-radius: 0; background: #05080d; box-shadow: none; }
+.video-player-header { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 8px 18px; border-bottom: 1px solid rgba(180, 203, 235, .12); background: #101722; }
 .video-player-header h2 { overflow: hidden; flex: 1; margin: 0; color: #edf3fc; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .video-player-header button { width: 34px; height: 34px; border: 0; border-radius: 8px; color: #dce8f8; font-size: 24px; background: rgba(255,255,255,.08); cursor: pointer; }
-.video-player-body { display: grid; place-items: center; min-height: 180px; background: #05090f; }
-.video-player-body video { display: block; width: 100%; max-height: calc(92vh - 52px); background: #000; }
+.video-player-body { display: grid; place-items: center; flex: 1; min-height: 0; background: #000; }
+.video-player-body video { display: block; width: 100%; height: 100%; max-height: none; background: #000; object-fit: contain; }
 .play-error { padding: 30px; color: #ffb4b4; text-align: center; }
 
 @media (max-width: 600px) {
   .author-videos-page { padding: 14px 12px 36px; }
-    .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .author-banner { min-height: 156px; margin-bottom: 20px; border-radius: 16px; }
+  .author-banner-content { min-height: 156px; gap: 14px; padding: 20px 16px; }
+  .author-banner-avatar { width: 76px; height: 76px; border-width: 2px; font-size: 28px; }
+  .author-signature { max-width: 100%; margin: 7px 0 10px; font-size: 12px; }
+  .banner-caption { display: none; }
+  .poster-toolbar { align-items: stretch; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+  .video-title-search { width: 100%; min-width: 0; }
+  .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .video-player-header { min-height: 50px; padding: 6px 12px; }
 }
 </style>

@@ -13,11 +13,16 @@ namespace dy.net.Controllers
     {
         private readonly DouyinVideoService douyinVideoService;
         private readonly DouyinCommonService douyinCommonService;
+        private readonly DouyinFollowService douyinFollowService;
 
-        public VideoController(DouyinVideoService dyCollectVideoService, DouyinCommonService douyinCommonService)
+        public VideoController(
+            DouyinVideoService dyCollectVideoService,
+            DouyinCommonService douyinCommonService,
+            DouyinFollowService douyinFollowService)
         {
             this.douyinVideoService = dyCollectVideoService;
             this.douyinCommonService = douyinCommonService;
+            this.douyinFollowService = douyinFollowService;
         }
         /// <summary>
         /// 分页查询收藏视频
@@ -43,16 +48,56 @@ namespace dy.net.Controllers
             [FromQuery] string authorId,
             [FromQuery] string authorName,
             [FromQuery] int pageIndex = 1,
-            [FromQuery] int pageSize = 30)
+            [FromQuery] int pageSize = 30,
+            [FromQuery] string title = null,
+            [FromQuery] int? videoType = null)
         {
             var (list, totalCount) = await douyinVideoService.GetAuthorVideosPagedAsync(
-                authorId, authorName, pageIndex, pageSize);
+                authorId, authorName, pageIndex, pageSize, title, videoType);
             return ApiResult.Success(new
             {
                 data = list,
                 total = totalCount,
                 pageIndex = Math.Max(1, pageIndex),
                 pageSize = Math.Clamp(pageSize, 1, 100)
+            });
+        }
+
+        /// <summary>获取当前作者实际存在的视频类型及数量。</summary>
+        [HttpGet("author-video-types")]
+        public async Task<IActionResult> GetAuthorVideoTypesAsync(
+            [FromQuery] string authorId,
+            [FromQuery] string authorName)
+        {
+            return ApiResult.Success(await douyinVideoService.GetAuthorVideoTypesAsync(authorId, authorName));
+        }
+
+        /// <summary>获取海报墙横幅显示的作者资料。</summary>
+        [HttpGet("author-profile")]
+        public async Task<IActionResult> GetAuthorProfileAsync(
+            [FromQuery] string authorId,
+            [FromQuery] string authorName)
+        {
+            var profile = await douyinFollowService.GetAuthorProfileAsync(authorId, authorName);
+            if (profile == null)
+            {
+                return ApiResult.Success(new
+                {
+                    name = authorName,
+                    icon = string.Empty,
+                    signature = string.Empty,
+                    enterprise = string.Empty,
+                    douyinNo = string.Empty
+                });
+            }
+
+            return ApiResult.Success(new
+            {
+                name = profile.UperName,
+                icon = profile.UperAvatar,
+                signature = profile.Signature,
+                enterprise = profile.Enterprise,
+                douyinNo = profile.DouyinNo
             });
         }
 

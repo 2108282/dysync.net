@@ -24,7 +24,7 @@
   - [4. 运行方式（推荐 Docker Compose）](#4-运行方式推荐-docker-compose)
     - [镜像版本](#镜像版本)
     - [构建命令示例](#构建命令示例)
-    - [方式一：Docker Compose 运行（推荐）](#方式一docker-compose-运行推荐)
+    - [Docker Compose 运行（推荐）](#docker-compose-运行推荐)
   - [🚀 5. 软件截图](#-5-软件截图)
   - [🚀 5. 已有功能与计划](#-5-已有功能与计划)
   - [💖 支持项目](#-支持项目)
@@ -106,19 +106,16 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 | ------------ | -------------- |
 | `beta_2.2.6` | x86_64 (amd64) |
 | `arm_2.2.6`  | ARM64          |
-| `latest`     | x86_64 (amd64) |
-
-> ⚠️ **精力有限，latest镜像版本不再维护**
 
 ### 构建命令示例
 
 将下方命令中的「本地路径」替换为你的实际路径，终端执行即可：
 
 
-### 方式一：Docker Compose 运行（推荐）
+### Docker Compose 运行（推荐）
 创建 docker-compose.yml 文件，复制以下内容，替换「本地路径」后执行 docker-compose up -d：
 
-<span style="color: red; font-weight: bold;">需要注意：unraid玩家需要增加 user配置 --user 1000:100</span>
+<span style="color: red; font-weight: bold;">需要注意：unraid玩家可能需要增加 user配置 --user 1000:100</span>
 
 ```yaml
 
@@ -129,7 +126,6 @@ services:
     restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
       - "10101:10101" 
-    
     environment:
       # 不限制GC堆最大内存，由.NET运行时根据实际负载管理
       # 禁用服务器GC，改用工作站GC（轻量应用更友好）

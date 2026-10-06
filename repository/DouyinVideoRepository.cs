@@ -1,6 +1,7 @@
 ﻿using dy.net.extension;
 using dy.net.model.dto;
 using dy.net.model.entity;
+using dy.net.utils;
 using SqlSugar;
 
 namespace dy.net.repository
@@ -81,15 +82,16 @@ namespace dy.net.repository
             string authorId,
             string authorName,
             int pageIndex,
-            int pageSize)
+            int pageSize,
+            string title = null,
+            int? videoType = null)
         {
-            var query = Db.Queryable<DouyinVideo>();
-            if (!string.IsNullOrWhiteSpace(authorId))
-                query = query.Where(x => x.AuthorId == authorId);
-            else if (!string.IsNullOrWhiteSpace(authorName))
-                query = query.Where(x => x.Author == authorName);
-            else
-                return (new List<DouyinVideo>(), 0);
+            var query = BuildAuthorVideoQuery(authorId, authorName);
+            if (query == null) return (new List<DouyinVideo>(), 0);
+
+            query = query
+                .WhereIF(!string.IsNullOrWhiteSpace(title), x => x.VideoTitle.Contains(title))
+                .WhereIF(videoType.HasValue, x => x.ViedoType == (VideoTypeEnum)videoType.Value);
 
             var totalCount = await query.CountAsync();
             var list = await query
@@ -99,6 +101,45 @@ namespace dy.net.repository
                 .Take(pageSize)
                 .ToListAsync();
             return (list, totalCount);
+        }
+
+        public async Task<List<AuthorVideoTypeDto>> GetAuthorVideoTypesAsync(string authorId, string authorName)
+        {
+            var query = BuildAuthorVideoQuery(authorId, authorName);
+            if (query == null) return new List<AuthorVideoTypeDto>();
+
+            var grouped = await query
+                .GroupBy(x => x.ViedoType)
+                .Select(x => new { Type = x.ViedoType, Count = SqlFunc.AggregateCount(x.Id) })
+                .ToListAsync();
+
+            return grouped
+                .Select(x =>
+                {
+                    var type = (VideoTypeEnum)Convert.ToInt32(x.Type);
+                    return new AuthorVideoTypeDto
+                    {
+                        Type = (int)type,
+                        Name = type.GetDesc(),
+                        Count = x.Count
+                    };
+                })
+                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+                .OrderBy(x => x.Type)
+                .ToList();
+        }
+
+        private ISugarQueryable<DouyinVideo> BuildAuthorVideoQuery(string authorId, string authorName)
+        {
+            var query = Db.Queryable<DouyinVideo>();
+            if (!string.IsNullOrWhiteSpace(authorId))
+                query = query.Where(x => x.AuthorId == authorId);
+            else if (!string.IsNullOrWhiteSpace(authorName))
+                query = query.Where(x => x.Author == authorName);
+            else
+                return null;
+
+            return query;
         }
 
         private static void GetDateBetween(List<string> dates, out DateTime? start, out DateTime? end)

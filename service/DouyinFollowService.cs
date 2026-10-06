@@ -118,6 +118,22 @@ namespace dy.net.service
             return await _followRepository.GetBySecUId(uperId, myUid);
         }
 
+        public async Task<DouyinFollowed> GetAuthorProfileAsync(string uperId, string uperName)
+        {
+            if (!string.IsNullOrWhiteSpace(uperId))
+            {
+                var byId = await _followRepository.GetFirstAsync(x => x.UperId == uperId);
+                if (byId != null) return byId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(uperName))
+            {
+                return await _followRepository.GetFirstAsync(x => x.UperName == uperName);
+            }
+
+            return null;
+        }
+
         internal async Task<List<DouyinFollowed>> GetByUperIds(IEnumerable<string> uperIds, string myUid)
         {
             var ids = uperIds?

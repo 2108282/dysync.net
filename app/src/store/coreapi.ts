@@ -159,6 +159,8 @@ export const useApiStore = defineStore('coreapi', () => {
     pageSize: number,
     authorId: string,
     authorName: string,
+    title = '',
+    videoType: number | null = null,
   ) {
     const params = new URLSearchParams({
       pageIndex: String(pageIndex),
@@ -166,8 +168,28 @@ export const useApiStore = defineStore('coreapi', () => {
     });
     if (authorId) params.set('authorId', authorId);
     if (authorName) params.set('authorName', authorName);
+    if (title) params.set('title', title);
+    if (videoType !== null) params.set('videoType', String(videoType));
     return http.request<any, Response<any>>(
       `/api/video/author-videos?${params.toString()}`,
+      'get',
+    );
+  }
+  async function AuthorVideoTypes(authorId: string, authorName: string) {
+    const params = new URLSearchParams();
+    if (authorId) params.set('authorId', authorId);
+    if (authorName) params.set('authorName', authorName);
+    return http.request<any, Response<any>>(
+      `/api/video/author-video-types?${params.toString()}`,
+      'get',
+    );
+  }
+  async function AuthorVideoProfile(authorId: string, authorName: string) {
+    const params = new URLSearchParams();
+    if (authorId) params.set('authorId', authorId);
+    if (authorName) params.set('authorName', authorName);
+    return http.request<any, Response<any>>(
+      `/api/video/author-profile?${params.toString()}`,
       'get',
     );
   }
@@ -705,6 +727,8 @@ export const useApiStore = defineStore('coreapi', () => {
     VideoAuthorOptions,
     VideoPageList,
     AuthorVideoPageList,
+    AuthorVideoTypes,
+    AuthorVideoProfile,
     CookiePageList,
     CookieList,
     FollowList,
