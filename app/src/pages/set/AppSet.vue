@@ -238,10 +238,18 @@
         <div class="storage-root-settings-grid">
           <div class="storage-setting">
             <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
-            <a-textarea id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
+            <div class="storage-root-entry">
+              <a-input id="storage-expansion-roots" v-model:value="storageExpansionRootDraft" placeholder="输入容器内目录，例如 /storage2" @pressEnter="addStorageExpansionRoot" />
+              <a-button @click="addStorageExpansionRoot">添加</a-button>
+            </div>
+            <div v-if="expansionRoots.length" class="storage-root-tags">
+              <a-tag v-for="(path, index) in expansionRoots" :key="path" closable @close="removeStorageExpansionRoot(index)">
+                {{ path }}
+              </a-tag>
+            </div>
             <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span>程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
+              <span>逐个添加根目录。程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
             </div>
           </div>
           <div class="storage-setting">
@@ -449,6 +457,20 @@ const expansionRoots = computed(() => formState.StorageExpansionRootsText
   .split(/\r?\n/)
   .map((path) => path.trim())
   .filter((path) => path.length > 0));
+const storageExpansionRootDraft = ref('');
+
+const addStorageExpansionRoot = () => {
+  const path = storageExpansionRootDraft.value.trim();
+  if (!path || expansionRoots.value.includes(path)) return;
+  formState.StorageExpansionRootsText = [...expansionRoots.value, path].join('\n');
+  storageExpansionRootDraft.value = '';
+};
+
+const removeStorageExpansionRoot = (index: number) => {
+  const roots = [...expansionRoots.value];
+  roots.splice(index, 1);
+  formState.StorageExpansionRootsText = roots.join('\n');
+};
 
 // 实时计算完整模板
 const computeFullTemplate = computed(() => {
