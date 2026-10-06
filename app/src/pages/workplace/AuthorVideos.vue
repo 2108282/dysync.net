@@ -363,13 +363,13 @@ function hideBrokenPoster(event: Event) {
 .state-panel strong { color: #e4edf9; font-size: 17px; }
 .state-panel span { color: #8fa1b8; }
 .error-message { margin: 0 auto 18px; color: #ff9b9b; text-align: center; }
-.video-player-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: stretch; padding: 0; background: #000; }
-.video-player-dialog { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100dvh; max-height: none; overflow: hidden; border: 0; border-radius: 0; background: #05080d; box-shadow: none; }
-.video-player-header { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 8px 18px; border-bottom: 1px solid rgba(180, 203, 235, .12); background: #101722; }
+.video-player-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; padding: 0; background: #000; }
+.video-player-dialog { display: flex; flex-direction: column; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; border: 0; border-radius: 0; background: #05080d; }
+.video-player-header { display: flex; align-items: center; gap: 16px; min-height: 56px; flex: 0 0 56px; padding: 8px 18px; border-bottom: 1px solid rgba(180, 203, 235, .12); background: #101722; }
 .video-player-header h2 { overflow: hidden; flex: 1; margin: 0; color: #edf3fc; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .video-player-header button { width: 34px; height: 34px; border: 0; border-radius: 8px; color: #dce8f8; font-size: 24px; background: rgba(255,255,255,.08); cursor: pointer; }
-.video-player-body { display: grid; place-items: center; flex: 1; min-height: 0; background: #000; }
-.video-player-body video { display: block; width: 100%; height: 100%; max-height: none; background: #000; object-fit: contain; }
+.video-player-body { position: relative; flex: 1 1 auto; min-width: 0; min-height: 0; overflow: hidden; background: #000; }
+.video-player-body video { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: 100%; max-height: 100%; background: #000; object-fit: contain; }
 .play-error { padding: 30px; color: #ffb4b4; text-align: center; }
 
 @media (max-width: 600px) {
@@ -382,6 +382,6 @@ function hideBrokenPoster(event: Event) {
   .poster-toolbar { align-items: stretch; flex-direction: column; gap: 9px; margin-bottom: 14px; }
   .video-title-search { width: 100%; min-width: 0; }
   .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .video-player-header { min-height: 50px; padding: 6px 12px; }
+  .video-player-header { min-height: 50px; flex-basis: 50px; padding: 6px 12px; }
 }
 </style>
