@@ -1,3 +1,5 @@
+export {};
+
 const root = document.documentElement;
 const shouldDelayBeforeLogin = root.dataset.loginStartupDelay === 'true';
 const startupDelayMs = shouldDelayBeforeLogin
