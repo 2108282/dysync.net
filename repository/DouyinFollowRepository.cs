@@ -126,15 +126,21 @@ namespace dy.net.repository
 
             try
             {
-                // 2. 开启SqlSugar事务
-                await Db.Ado.BeginTranAsync();
-                // 1. 提取当前批次的SecUid集合（去重）
-                HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet();
+                // 1. 清除无效项和重复项，避免无意义 SQL 以及重复插入。
+                followInfos = followInfos
+                    .Where(x => x != null && !string.IsNullOrWhiteSpace(x.SecUid))
+                    .GroupBy(x => x.SecUid, StringComparer.Ordinal)
+                    .Select(g => g.First())
+                    .ToList();
+                HashSet<string> currentSecUids = followInfos.Select(x => x.SecUid).ToHashSet(StringComparer.Ordinal);
                 if (!currentSecUids.Any())
                 {
                     Serilog.Log.Debug($"同步关注列表：当前批次无有效数据（{ck.UserName}），直接返回成功");
                     return (0, 0, true);
                 }
+
+                // 2. 开启SqlSugar事务
+                await Db.Ado.BeginTranAsync();
 
                 // 2. 查询当前批次对应的现有记录（仅查需要对比的，减少数据量）
                 List<DouyinFollowed> existFollows = await Db.Queryable<DouyinFollowed>()
@@ -144,15 +150,15 @@ namespace dy.net.repository
                     .ToListAsync() ?? new List<DouyinFollowed>();
 
                 // 3. 拆分：新增（当前批次有，数据库无） + 更新（当前批次有，数据库也有且字段变化）
-                HashSet<string> existSecUids = existFollows.Select(x => x.SecUid).ToHashSet();
+                HashSet<string> existSecUids = existFollows.Select(x => x.SecUid).ToHashSet(StringComparer.Ordinal);
+                var followInfoBySecUid = followInfos.ToDictionary(x => x.SecUid, StringComparer.Ordinal);
                 var toAddFollows = followInfos.Where(x => !existSecUids.Contains(x.SecUid)).ToList();
                 var toUpdateFollows = new List<DouyinFollowed>();
 
                 // 3.1 筛选需要更新的记录
                 foreach (var existFollow in existFollows)
                 {
-                    var newFollow = followInfos.FirstOrDefault(x => x.SecUid == existFollow.SecUid);
-                    if (newFollow == null) continue;
+                    if (!followInfoBySecUid.TryGetValue(existFollow.SecUid, out var newFollow)) continue;
 
                     // 检查字段是否变更（精确匹配）
                     bool nameChanged = !string.Equals(existFollow.UperName, newFollow.NickName, StringComparison.Ordinal);
@@ -208,7 +214,7 @@ namespace dy.net.repository
                     if (!batchAddSuccess)
                     {
                         Serilog.Log.Error("同步关注列表失败：新增关注分批插入异常");
-                        return (toAddFollows.Count, toUpdateFollows.Count, false);
+                        throw new InvalidOperationException("新增关注分批插入异常");
                     }
                 }
 
@@ -229,7 +235,7 @@ namespace dy.net.repository
                     if (!batchUpdateSuccess)
                     {
                         Serilog.Log.Error( $"[{ck.UserName}]同步关注列表失败");
-                        return (toAddFollows.Count, toUpdateFollows.Count, false);
+                        throw new InvalidOperationException("更新关注分批处理异常");
                     }
                 }
 

@@ -130,6 +130,13 @@ export const useApiStore = defineStore('coreapi', () => {
       'get'
     );
   }
+  async function VideoAuthorOptions(keyword: string, take = 20) {
+    const params = new URLSearchParams({ keyword, take: String(take) });
+    return http.request<any, Response<any>>(
+      `/api/video/statics/authors/search?${params.toString()}`,
+      'get',
+    );
+  }
   //视频曲线
   async function VideoChart(day: number) {
     return http.request<any, Response<any>>(`/api/video/chart/${day}`, 'get').then(r => {
@@ -146,6 +153,23 @@ export const useApiStore = defineStore('coreapi', () => {
     }).finally(() => {
 
     });
+  }
+  async function AuthorVideoPageList(
+    pageIndex: number,
+    pageSize: number,
+    authorId: string,
+    authorName: string,
+  ) {
+    const params = new URLSearchParams({
+      pageIndex: String(pageIndex),
+      pageSize: String(pageSize),
+    });
+    if (authorId) params.set('authorId', authorId);
+    if (authorName) params.set('authorName', authorName);
+    return http.request<any, Response<any>>(
+      `/api/video/author-videos?${params.toString()}`,
+      'get',
+    );
   }
   //cookies
   async function CookiePageList(param: object) {
@@ -678,7 +702,9 @@ export const useApiStore = defineStore('coreapi', () => {
     StartJobNow,
     VideoStatics,
     VideoAuthorStatics,
+    VideoAuthorOptions,
     VideoPageList,
+    AuthorVideoPageList,
     CookiePageList,
     CookieList,
     FollowList,

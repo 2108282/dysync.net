@@ -64,6 +64,11 @@ const MobileRedirectGuard: NavigationGuard = function (to, from, next) {
     return;
   }
 
+  if (to.path === '/author-videos') {
+    next();
+    return;
+  }
+
   // 2. 移动端检测
   if (isMobile()) {
     const isAuthorized = http.checkAuthorization();
@@ -183,6 +188,8 @@ const NotFoundGuard: NaviGuard = {
 // 优化后的页面刷新移动端检测（登录优先）
 window.addEventListener('load', () => {
   const currentPath = window.location.pathname;
+  const currentHashPath = window.location.hash.split('?')[0];
+  if (currentHashPath === '#/author-videos') return;
   const isNonMobile = !isMobile();
 
   // 【新增】：刷新后如果是/mobile路由且非移动端，跳转到/dashboard

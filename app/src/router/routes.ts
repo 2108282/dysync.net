@@ -95,6 +95,17 @@ const routes: RouteRecordRaw[] = [
         children: null,
         component: () => import('@/pages/desk/index.vue'),
       },
+      {
+        path: '/author-videos',
+        name: 'author-videos',
+        meta: {
+          renderMenu: false,
+          view: 'blank',
+          target: '_blank',
+          cacheable: false,
+        },
+        component: () => import('@/pages/workplace/AuthorVideos.vue'),
+      },
       // {
       //   path: '/init',
       //   name: '初始化',

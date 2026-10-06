@@ -37,6 +37,25 @@ namespace dy.net.Controllers
             });
         }
 
+        /// <summary>分页获取指定作者的已同步视频，供作者海报墙使用。</summary>
+        [HttpGet("author-videos")]
+        public async Task<IActionResult> GetAuthorVideosPagedAsync(
+            [FromQuery] string authorId,
+            [FromQuery] string authorName,
+            [FromQuery] int pageIndex = 1,
+            [FromQuery] int pageSize = 30)
+        {
+            var (list, totalCount) = await douyinVideoService.GetAuthorVideosPagedAsync(
+                authorId, authorName, pageIndex, pageSize);
+            return ApiResult.Success(new
+            {
+                data = list,
+                total = totalCount,
+                pageIndex = Math.Max(1, pageIndex),
+                pageSize = Math.Clamp(pageSize, 1, 100)
+            });
+        }
+
         /// <summary>
         /// 查询统计数据
         /// </summary>
@@ -63,6 +82,16 @@ namespace dy.net.Controllers
                 pageIndex = Math.Max(1, pageIndex),
                 pageSize = Math.Clamp(pageSize, 10, 100)
             });
+        }
+
+        /// <summary>按名称搜索作者，用于海报墙的作者切换器。</summary>
+        [HttpGet("statics/authors/search")]
+        public async Task<IActionResult> SearchAuthorOptionsAsync(
+            [FromQuery] string keyword,
+            [FromQuery] int take = 20)
+        {
+            var (list, totalCount) = await douyinVideoService.SearchAuthorOptionsAsync(keyword, take);
+            return ApiResult.Success(new { data = list, total = totalCount });
         }
 
         /// <summary>
