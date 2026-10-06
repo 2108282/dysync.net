@@ -97,6 +97,7 @@
                 <span>当前存储位置剩余容量低于此值时，自动切到后续扩展根目录。</span>
               </div>
             </a-form-item>
+            <div class="storage-root-grid">
             <a-form-item label="收藏当前存储位置" name="ActiveCollectStorageRootIndex">
               <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
                 <a-select-option :value="0">原收藏路径</a-select-option>
@@ -131,6 +132,7 @@
                 <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
               </div>
             </a-form-item>
+            </div>
             <a-form-item label="忽略文件存在检查" name="SkipFileExistenceCheck">
               <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
               <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -1579,9 +1581,9 @@ html.dark-mode .native-audio-player {
   }
 
   .system-config-form :deep(.ant-form-item-label) {
-    width: 96px !important;
-    max-width: 96px !important;
-    flex: 0 0 96px !important;
+    width: 160px !important;
+    max-width: 160px !important;
+    flex: 0 0 160px !important;
     padding-right: 10px !important;
   }
 
@@ -1741,6 +1743,23 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 .config-column .form-section {
   width: 100%;
   box-sizing: border-box;
+}
+
+.storage-root-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  align-items: start;
+}
+
+.storage-root-grid :deep(.ant-form-item) {
+  min-width: 0;
+}
+
+@media (max-width: 1380px) {
+  .storage-root-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 避免左右卡片因默认网格行高互相拉伸 */
