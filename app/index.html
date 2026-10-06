@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/png" href="/logo.png" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#07111f" />
   <meta name="color-scheme" content="dark" />
-  <title>抖小云 · 正在启动</title>
+  <title>抖小云</title>
 
   <script>
-    (function resolveLoginStartupMode() {
+    (function resolveLoginStartupMode () {
       var sessionKey = 'dysync-login-startup-shown-v2';
       var root = document.documentElement;
 
@@ -25,7 +24,7 @@
         // sessionStorage 不可用时继续按 Cookie 判断。
       }
 
-      function hasAuthorizationCookie() {
+      function hasAuthorizationCookie () {
         return document.cookie
           .split(';')
           .some(function (item) {
@@ -33,7 +32,7 @@
           });
       }
 
-      function hasShownInCurrentTab() {
+      function hasShownInCurrentTab () {
         try {
           return window.sessionStorage.getItem(sessionKey) === '1';
         } catch (error) {
@@ -41,7 +40,7 @@
         }
       }
 
-      function getCachedThemeMode() {
+      function getCachedThemeMode () {
         try {
           return window.localStorage.getItem('theme-mode') === 'night'
             ? 'night'
@@ -163,8 +162,7 @@
       place-items: center;
       min-height: 100vh;
       min-height: 100dvh;
-      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
-        max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+      padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
       overflow: hidden;
       background:
         radial-gradient(circle at 50% 16%, rgba(49, 131, 226, 0.2), transparent 30%),
@@ -434,11 +432,13 @@
     }
 
     @keyframes startupPulse {
+
       0%,
       100% {
         transform: scale(0.94);
         opacity: 0.5;
       }
+
       50% {
         transform: scale(1.08);
         opacity: 1;
@@ -449,26 +449,31 @@
       0% {
         left: -48%;
       }
+
       100% {
         left: 104%;
       }
     }
 
     @keyframes statusBlink {
+
       0%,
       100% {
         opacity: 0.45;
       }
+
       50% {
         opacity: 1;
       }
     }
 
     @keyframes orbFloat {
+
       0%,
       100% {
         transform: translate3d(0, 0, 0) scale(1);
       }
+
       50% {
         transform: translate3d(0, -18px, 0) scale(1.08);
       }
@@ -542,6 +547,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
+
       .startup-orb,
       .startup-logo-wrap::before,
       .startup-logo-wrap::after,
@@ -595,59 +601,13 @@
     <div class="startup-noscript">当前浏览器已禁用 JavaScript，无法启动抖小云。</div>
   </noscript>
 
-  <script type="module">
-    const shouldDelayBeforeLogin =
-      document.documentElement.dataset.loginStartupDelay === 'true';
-
-    // 仅在当前登录周期内，未登录首次进入时随机等待 1～2 秒。
-    const startupDelayMs = shouldDelayBeforeLogin
-      ? 1000 + Math.floor(Math.random() * 1001)
-      : 0;
-
-    if (shouldDelayBeforeLogin) {
-      try {
-        window.sessionStorage.setItem(
-          'dysync-login-startup-shown-v2',
-          '1'
-        );
-      } catch (error) {
-        console.warn('无法记录启动页状态：', error);
-      }
-    }
-
-    window.setTimeout(async () => {
-      try {
-        await import('/src/main.ts');
-
-        // Vue 已挂载后清理首屏专用状态，避免影响登录后的业务页面。
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            document.documentElement.classList.remove(
-              'login-startup-active',
-              'app-preload-light',
-              'app-preload-dark'
-            );
-          });
-        });
-      } catch (error) {
-        console.error('应用启动失败：', error);
-
-        const statusElement =
-          document.getElementById('startup-status-text');
-
-        if (statusElement) {
-          statusElement.textContent =
-            '应用启动失败，请刷新页面重试';
-        }
-      }
-    }, startupDelayMs);
-  </script>
+  <script type="module" src="/src/startup.ts"></script>
   <script>
     if (typeof global === 'undefined') {
       var global = globalThis;
     }
 
-    (function rotateStartupStatus() {
+    (function rotateStartupStatus () {
       if (
         document.documentElement.dataset.loginStartupDelay !== 'true'
       ) {
@@ -679,4 +639,5 @@
     })();
   </script>
 </body>
+
 </html>

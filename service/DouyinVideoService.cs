@@ -156,6 +156,14 @@ namespace dy.net.service
             return await videoStatisticsService.GetAuthorsPagedAsync(pageIndex, pageSize);
         }
 
+        public async Task<(List<VideoStaticsItemDto> list, int totalCount)> SearchAuthorOptionsAsync(
+            string keyword,
+            int take = 20)
+        {
+            take = Math.Clamp(take, 1, 20);
+            return await videoStatisticsService.GetAuthorsPagedAsync(1, take, keyword?.Trim());
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -189,6 +197,18 @@ namespace dy.net.service
         public async Task<(List<DouyinVideo> list, int totalCount)> GetPagedAsync(DouyinVideoPageRequestDto dto)
         {
             return await _dyCollectVideoRepository.GetPagedAsync(dto);
+        }
+
+        public async Task<(List<DouyinVideo> list, int totalCount)> GetAuthorVideosPagedAsync(
+            string authorId,
+            string authorName,
+            int pageIndex,
+            int pageSize)
+        {
+            pageIndex = Math.Max(1, pageIndex);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            return await _dyCollectVideoRepository.GetAuthorVideosPagedAsync(
+                authorId, authorName, pageIndex, pageSize);
         }
 
         public async Task<List<DouyinVideo>> GetAllAsync()

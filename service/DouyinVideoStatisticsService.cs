@@ -224,12 +224,15 @@ namespace dy.net.service
 
         public async Task<(List<VideoStaticsItemDto> list, int totalCount)> GetAuthorsPagedAsync(
             int pageIndex,
-            int pageSize)
+            int pageSize,
+            string keyword = null)
         {
             await EnsureInitializedAsync();
-            var query = _db.Queryable<DouyinVideoAuthorStatistic>();
+            var query = _db.Queryable<DouyinVideoAuthorStatistic>()
+                .WhereIF(!string.IsNullOrWhiteSpace(keyword), x => x.Name.Contains(keyword));
             var totalCount = await query.CountAsync();
-            var rows = await _db.Queryable<DouyinVideoAuthorStatistic>()
+            var rows = _db.Queryable<DouyinVideoAuthorStatistic>()
+                .WhereIF(!string.IsNullOrWhiteSpace(keyword), x => x.Name.Contains(keyword))
                 .OrderBy(x => x.VideoCount, OrderByType.Desc)
                 .OrderBy(x => x.Name, OrderByType.Asc)
                 .Skip((pageIndex - 1) * pageSize)

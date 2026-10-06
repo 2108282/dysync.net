@@ -77,6 +77,30 @@ namespace dy.net.repository
             return (list, totalCount);
         }
 
+        public async Task<(List<DouyinVideo> list, int totalCount)> GetAuthorVideosPagedAsync(
+            string authorId,
+            string authorName,
+            int pageIndex,
+            int pageSize)
+        {
+            var query = Db.Queryable<DouyinVideo>();
+            if (!string.IsNullOrWhiteSpace(authorId))
+                query = query.Where(x => x.AuthorId == authorId);
+            else if (!string.IsNullOrWhiteSpace(authorName))
+                query = query.Where(x => x.Author == authorName);
+            else
+                return (new List<DouyinVideo>(), 0);
+
+            var totalCount = await query.CountAsync();
+            var list = await query
+                .OrderBy(x => x.CreateTime, OrderByType.Desc)
+                .OrderBy(x => x.SyncTime, OrderByType.Desc)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            return (list, totalCount);
+        }
+
         private static void GetDateBetween(List<string> dates, out DateTime? start, out DateTime? end)
         {
             start = null;

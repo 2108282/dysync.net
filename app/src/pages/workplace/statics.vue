@@ -116,11 +116,11 @@
           <div class="authors-grid">
             <div class="author-card" v-for="author in authors" :key="`${author.uperId || ''}-${author.name}`" @dblclick="handleDeleteItem(author)">
               <div class="author-info-row">
-                <div class="author-avatar">
+                <div class="author-avatar author-open-link" role="link" tabindex="0" @click.stop="openAuthorVideos(author)" @dblclick.stop @keydown.enter.stop="openAuthorVideos(author)">
                   <img :src="author.icon" alt="作者头像" />
                 </div>
                 <div class="author-info">
-                  <h3 class="author-name">{{ author.name }}</h3>
+                  <h3 class="author-name author-open-link" role="link" tabindex="0" @click.stop="openAuthorVideos(author)" @dblclick.stop @keydown.enter.stop="openAuthorVideos(author)">{{ author.name }}</h3>
                   <p class="author-stats">同步数量: {{ author.count }}</p>
                 </div>
               </div>
@@ -150,6 +150,7 @@
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useApiStore } from '@/store';
+import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import * as echarts from 'echarts';
 import { FullscreenOutlined } from '@ant-design/icons-vue'; // 确保导入图标
@@ -192,6 +193,7 @@ const videoMixSize = ref<string>('0.00');
 const videoSeriesSize = ref<string>('0.00');
 
 const authors = ref<Author[]>([]);
+const router = useRouter();
 const AUTHOR_PAGE_SIZE = 30;
 const authorPageIndex = ref(0);
 const authorLoading = ref(false);
@@ -544,6 +546,18 @@ async function loadAuthors(reset = false) {
   }
 }
 
+function openAuthorVideos(author: Author) {
+  const href = router.resolve({
+    path: '/author-videos',
+    query: {
+      authorId: author.uperId || undefined,
+      authorName: author.name,
+      authorIcon: author.icon || undefined,
+    },
+  }).href;
+  window.open(href, '_blank', 'noopener,noreferrer');
+}
+
 const loadDashboardData = async () => {
   try {
     const res = await useApiStore().VideoStatics();
@@ -884,6 +898,12 @@ const handleDeleteItem = (item: Author) => {
   margin: 0;
   font-size: 16px;
   color: #333333;
+}
+.author-open-link {
+  cursor: pointer;
+}
+.author-open-link:hover {
+  color: #1677ff;
 }
 .author-stats {
   margin: 5px 0px;

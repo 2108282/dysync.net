@@ -26,6 +26,7 @@ namespace dy.net.job
         private const string LOG_TAG_FOLLOW = "关注列表";
         private const int MIN_REQUEST_DELAY_SECONDS = 1;
         private const int MAX_REQUEST_DELAY_SECONDS = 3;
+        private const int FOLLOW_SYNC_BATCH_SIZE = 200;
         private readonly Random _random = new();
 
         // 构造函数注入
@@ -233,10 +234,12 @@ namespace dy.net.job
                 return;
             }
 
-            var followList = new List<FollowingsItem>();
+            var followList = new List<FollowingsItem>(FOLLOW_SYNC_BATCH_SIZE);
             string offset = "0";
             bool hasMore = true;
             int total = 0;
+            int pageCount = 0;
+            var seenOffsets = new HashSet<string>(StringComparer.Ordinal);
 
             try
             {
@@ -244,13 +247,18 @@ namespace dy.net.job
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
+                    if (!seenOffsets.Add(offset))
+                    {
+                        throw new InvalidOperationException($"关注列表分页游标未前进，offset={offset}");
+                    }
+
                     var data = await _douyinService.SyncMyFollows(
                         DEFAULT_FOLLOW_COUNT, offset, cookie.SecUserId, cookie.Cookies);
 
                     if (data == null)
                     {
                         Log.Error($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}同步异常，请检查cookie");
-                      break;
+                        throw new InvalidOperationException("获取关注列表失败，接口返回空数据");
                     }
                     var statusMsg = data.StatusCode == 0 ? "正常" : "异常";
                     var cookieChanged = cookie.StatusCode != data.StatusCode || cookie.StatusMsg != statusMsg;
@@ -270,28 +278,35 @@ namespace dy.net.job
 
                     total = data.Total;
                     hasMore = data.HasMore;
-                    offset = data.Offset.ToString();
+                    var nextOffset = data.Offset.ToString();
+                    if (hasMore && (nextOffset == offset || data.Followings?.Count == 0))
+                    {
+                        throw new InvalidOperationException($"关注列表分页未取得进展，offset={offset}, nextOffset={nextOffset}");
+                    }
+                    offset = nextOffset;
+                    pageCount++;
 
                     if (data.Followings?.Any() == true)
                     {
                         followList.AddRange(data.Followings);
-                        //Log.Debug($"[{cookie.UserName}] - {LOG_TAG_FOLLOW}：获取{data.Followings.Count}条，累计{followList.Count}条");
                     }
-                    //Serilog.Log.Debug("isRestart2=" + config.IsFirstRunning);
+
+                    // 非首次运行只取一页；该页也必须在决定停止前写入。
                     if (!config.IsFirstRunning) hasMore = false;
 
+                    if (followList.Count >= FOLLOW_SYNC_BATCH_SIZE || !hasMore)
+                    {
+                        await PersistFollowBatchAsync(followList, cookie, cancellationToken);
+                        followList.Clear();
+                    }
                     if (hasMore)
                     {
                         await DelayBetweenRequestsAsync(cancellationToken);
                     }
                 }
 
-                if (followList.Any())
-                {
-                    var (add, update, succ) = await _followService.Sync(followList, cookie);
-                    Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成 新增:{add} 更新:{update} 成功:{succ} 总关注数:{total}，这是同步关注列表，这不是同步视频！！！");
-                }
                 await _douyinCommonService.SetConfigNotFirstRunning();
+                Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]同步完成，接口总关注数:{total}，本轮读取页数:{pageCount}，这是同步关注列表，这不是同步视频！！！");
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -301,6 +316,19 @@ namespace dy.net.job
             {
                 Log.Error(ex, $"[{cookie.UserName}][{LOG_TAG_FOLLOW}]：同步失败");
             }
+        }
+
+        private async Task PersistFollowBatchAsync(List<FollowingsItem> followList, DouyinCookie cookie, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (followList.Count == 0) return;
+
+            var (add, update, succ) = await _followService.Sync(followList, cookie);
+            if (!succ)
+            {
+                throw new InvalidOperationException($"关注列表分批入库失败，当前批次{followList.Count}条");
+            }
+            Log.Debug($"[{cookie.UserName}][{LOG_TAG_FOLLOW}]批次同步完成 新增:{add} 更新:{update} 成功:{succ} 批次:{followList.Count}");
         }
         #endregion
 
