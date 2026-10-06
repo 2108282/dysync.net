@@ -217,20 +217,6 @@
             </a-modal>
           </div>
 
-          <!-- 操作按钮：移动到右列底部，业务逻辑保持不变 -->
-          <div class="right-column-actions">
-            <a-form-item :wrapper-col="{ span: 24 }" class="form-actions">
-              <a-space size="middle">
-                <a-button type="primary" @click="onUpdate" v-if="componentDisabled">
-                  <SaveOutlined />修改配置
-                </a-button>
-                <a-button type="primary" danger @click="onSubmit" v-if="!componentDisabled">
-                  <CheckOutlined />确认保存
-                </a-button>
-                <a-button type="default" @click="onCancel" v-if="!componentDisabled">取消</a-button>
-              </a-space>
-            </a-form-item>
-          </div>
         </div>
       </div>
       <div class="form-section storage-config-section">
@@ -302,6 +288,17 @@
           <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
           <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
         </div>
+      </div>
+      <div class="bottom-config-actions">
+        <a-space size="middle">
+          <a-button type="primary" @click="onUpdate" v-if="componentDisabled">
+            <SaveOutlined />修改配置
+          </a-button>
+          <a-button type="primary" danger @click="onSubmit" v-if="!componentDisabled">
+            <CheckOutlined />确认保存
+          </a-button>
+          <a-button type="default" @click="onCancel" v-if="!componentDisabled">取消</a-button>
+        </a-space>
       </div>
     </a-form>
   </a-card>
@@ -1782,6 +1779,13 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 .storage-config-section {
   width: 100%;
   margin-top: 14px;
+}
+
+.bottom-config-actions {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 0 8px;
 }
 
 .storage-root-settings-grid {
