@@ -14,9 +14,8 @@
 
     }
 
-    public class AuthorVideoTypeDto
+    public class AuthorVideoTagDto
     {
-        public int Type { get; set; }
         public string Name { get; set; }
         public long Count { get; set; }
     }

@@ -50,10 +50,10 @@ namespace dy.net.Controllers
             [FromQuery] int pageIndex = 1,
             [FromQuery] int pageSize = 30,
             [FromQuery] string title = null,
-            [FromQuery] int? videoType = null)
+            [FromQuery] string tag1 = null)
         {
             var (list, totalCount) = await douyinVideoService.GetAuthorVideosPagedAsync(
-                authorId, authorName, pageIndex, pageSize, title, videoType);
+                authorId, authorName, pageIndex, pageSize, title, tag1);
             return ApiResult.Success(new
             {
                 data = list,
@@ -63,13 +63,13 @@ namespace dy.net.Controllers
             });
         }
 
-        /// <summary>获取当前作者实际存在的视频类型及数量。</summary>
-        [HttpGet("author-video-types")]
-        public async Task<IActionResult> GetAuthorVideoTypesAsync(
+        /// <summary>获取当前作者实际存在的一级分类及数量。</summary>
+        [HttpGet("author-video-tags")]
+        public async Task<IActionResult> GetAuthorVideoTagsAsync(
             [FromQuery] string authorId,
             [FromQuery] string authorName)
         {
-            return ApiResult.Success(await douyinVideoService.GetAuthorVideoTypesAsync(authorId, authorName));
+            return ApiResult.Success(await douyinVideoService.GetAuthorVideoTagsAsync(authorId, authorName));
         }
 
         /// <summary>获取海报墙横幅显示的作者资料。</summary>

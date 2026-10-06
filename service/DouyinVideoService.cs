@@ -205,17 +205,17 @@ namespace dy.net.service
             int pageIndex,
             int pageSize,
             string title = null,
-            int? videoType = null)
+            string tag1 = null)
         {
             pageIndex = Math.Max(1, pageIndex);
             pageSize = Math.Clamp(pageSize, 1, 100);
             return await _dyCollectVideoRepository.GetAuthorVideosPagedAsync(
-                authorId, authorName, pageIndex, pageSize, title, videoType);
+                authorId, authorName, pageIndex, pageSize, title, tag1);
         }
 
-        public async Task<List<AuthorVideoTypeDto>> GetAuthorVideoTypesAsync(string authorId, string authorName)
+        public async Task<List<AuthorVideoTagDto>> GetAuthorVideoTagsAsync(string authorId, string authorName)
         {
-            return await _dyCollectVideoRepository.GetAuthorVideoTypesAsync(authorId, authorName);
+            return await _dyCollectVideoRepository.GetAuthorVideoTagsAsync(authorId, authorName);
         }
 
         public async Task<List<DouyinVideo>> GetAllAsync()

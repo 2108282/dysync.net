@@ -84,14 +84,14 @@ namespace dy.net.repository
             int pageIndex,
             int pageSize,
             string title = null,
-            int? videoType = null)
+            string tag1 = null)
         {
             var query = BuildAuthorVideoQuery(authorId, authorName);
             if (query == null) return (new List<DouyinVideo>(), 0);
 
             query = query
                 .WhereIF(!string.IsNullOrWhiteSpace(title), x => x.VideoTitle.Contains(title))
-                .WhereIF(videoType.HasValue, x => x.ViedoType == (VideoTypeEnum)videoType.Value);
+                .WhereIF(!string.IsNullOrWhiteSpace(tag1), x => x.Tag1 == tag1);
 
             var totalCount = await query.CountAsync();
             var list = await query
@@ -103,29 +103,24 @@ namespace dy.net.repository
             return (list, totalCount);
         }
 
-        public async Task<List<AuthorVideoTypeDto>> GetAuthorVideoTypesAsync(string authorId, string authorName)
+        public async Task<List<AuthorVideoTagDto>> GetAuthorVideoTagsAsync(string authorId, string authorName)
         {
             var query = BuildAuthorVideoQuery(authorId, authorName);
-            if (query == null) return new List<AuthorVideoTypeDto>();
+            if (query == null) return new List<AuthorVideoTagDto>();
 
             var grouped = await query
-                .GroupBy(x => x.ViedoType)
-                .Select(x => new { Type = x.ViedoType, Count = SqlFunc.AggregateCount(x.Id) })
+                .Where(x => x.Tag1 != null && x.Tag1 != "")
+                .GroupBy(x => x.Tag1)
+                .Select(x => new { Name = x.Tag1, Count = SqlFunc.AggregateCount(x.Id) })
                 .ToListAsync();
 
             return grouped
-                .Select(x =>
+                .Select(x => new AuthorVideoTagDto
                 {
-                    var type = (VideoTypeEnum)Convert.ToInt32(x.Type);
-                    return new AuthorVideoTypeDto
-                    {
-                        Type = (int)type,
-                        Name = type.GetDesc(),
-                        Count = x.Count
-                    };
+                    Name = x.Name,
+                    Count = x.Count
                 })
-                .Where(x => !string.IsNullOrWhiteSpace(x.Name))
-                .OrderBy(x => x.Type)
+                .OrderBy(x => x.Name)
                 .ToList();
         }
 

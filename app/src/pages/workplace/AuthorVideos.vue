@@ -26,24 +26,24 @@
 
     <section class="poster-section" aria-label="博主视频列表">
       <div class="poster-toolbar">
-        <div class="video-type-tabs" role="tablist" aria-label="视频类型筛选">
+        <div class="video-tag-tabs" role="tablist" aria-label="视频分类筛选">
           <button
             type="button"
-            class="video-type-tab"
-            :class="{ active: activeVideoType === null }"
-            @click="selectVideoType(null)"
+            class="video-tag-tab"
+            :class="{ active: activeVideoTag === null }"
+            @click="selectVideoTag(null)"
           >
-            全部 <span>{{ allVideoCount }}</span>
+            全部分类
           </button>
           <button
-            v-for="type in authorVideoTypes"
-            :key="type.type"
+            v-for="tag in authorVideoTags"
+            :key="tag.name"
             type="button"
-            class="video-type-tab"
-            :class="{ active: activeVideoType === type.type }"
-            @click="selectVideoType(type.type)"
+            class="video-tag-tab"
+            :class="{ active: activeVideoTag === tag.name }"
+            @click="selectVideoTag(tag.name)"
           >
-            {{ type.name }} <span>{{ type.count }}</span>
+            {{ tag.name }} <span>{{ tag.count }}</span>
           </button>
         </div>
         <label class="video-title-search">
@@ -138,8 +138,7 @@ interface AuthorVideo {
   authorAvatarUrl?: string;
 }
 
-interface AuthorVideoType {
-  type: number;
+interface AuthorVideoTag {
   name: string;
   count: number;
 }
@@ -154,8 +153,8 @@ const authorProfile = ref({
   douyinNo: '',
 });
 const videos = ref<AuthorVideo[]>([]);
-const authorVideoTypes = ref<AuthorVideoType[]>([]);
-const activeVideoType = ref<number | null>(null);
+const authorVideoTags = ref<AuthorVideoTag[]>([]);
+const activeVideoTag = ref<string | null>(null);
 const titleSearchInput = ref('');
 const titleSearchKeyword = ref('');
 const activeVideo = ref<AuthorVideo | null>(null);
@@ -174,13 +173,12 @@ const selectedAuthorId = ref(queryValue(route.query.authorId));
 const selectedAuthorName = ref(queryValue(route.query.authorName));
 const routeAuthorIcon = queryValue(route.query.authorIcon);
 const bannerAvatar = computed(() => authorProfile.value.icon || routeAuthorIcon || videos.value[0]?.authorAvatarUrl || videos.value[0]?.authorAvatar || '');
-const allVideoCount = computed(() => authorVideoTypes.value.reduce((sum, item) => sum + item.count, 0) || total.value);
-const hasActiveFilter = computed(() => activeVideoType.value !== null || !!titleSearchKeyword.value);
+const hasActiveFilter = computed(() => activeVideoTag.value !== null || !!titleSearchKeyword.value);
 let titleSearchTimer: ReturnType<typeof setTimeout> | undefined;
 
 onMounted(async () => {
   document.title = `${selectedAuthorName.value || '博主'} · 视频海报墙`;
-  await Promise.all([loadVideos(), loadAuthorProfile(), loadAuthorVideoTypes()]);
+  await Promise.all([loadVideos(), loadAuthorProfile(), loadAuthorVideoTags()]);
   observer = new IntersectionObserver(
     entries => {
       if (entries[0]?.isIntersecting) void loadVideos();
@@ -223,7 +221,7 @@ async function loadVideos() {
       requestedAuthorId,
       requestedAuthorName,
       titleSearchKeyword.value,
-      activeVideoType.value,
+      activeVideoTag.value || '',
     );
     if (requestVersion !== videosRequestVersion) return;
     if (response?.code !== 0 || !response?.data) {
@@ -243,23 +241,23 @@ async function loadVideos() {
   }
 }
 
-async function loadAuthorVideoTypes() {
+async function loadAuthorVideoTags() {
   try {
-    const response = await useApiStore().AuthorVideoTypes(
+    const response = await useApiStore().AuthorVideoTags(
       selectedAuthorId.value,
       selectedAuthorName.value,
     );
     if (response?.code === 0) {
-      authorVideoTypes.value = (response.data ?? []) as AuthorVideoType[];
+      authorVideoTags.value = (response.data ?? []) as AuthorVideoTag[];
     }
   } catch (error) {
-    console.error('加载博主视频类型失败：', error);
+    console.error('加载博主视频分类失败：', error);
   }
 }
 
-function selectVideoType(type: number | null) {
-  if (activeVideoType.value === type) return;
-  activeVideoType.value = type;
+function selectVideoTag(tag: string | null) {
+  if (activeVideoTag.value === tag) return;
+  activeVideoTag.value = tag;
   resetVideos();
 }
 
@@ -336,10 +334,10 @@ function hideBrokenPoster(event: Event) {
 .banner-caption { margin-left: auto; color: rgba(173, 197, 228, .57); font-size: 11px; font-weight: 600; letter-spacing: .22em; white-space: nowrap; }
 .poster-section { max-width: 1600px; margin: 0 auto; }
 .poster-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
-.video-type-tabs { display: flex; align-items: center; gap: 8px; min-width: 0; overflow-x: auto; padding: 3px 1px 7px; scrollbar-width: thin; }
-.video-type-tab { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; min-height: 36px; padding: 0 13px; border: 1px solid rgba(180, 203, 235, .13); border-radius: 999px; color: #a9bad0; font-size: 12px; background: rgba(255, 255, 255, .035); cursor: pointer; transition: border-color .18s ease, background .18s ease, color .18s ease; }
-.video-type-tab:hover, .video-type-tab.active { border-color: rgba(102, 170, 255, .5); color: #edf5ff; background: rgba(65, 132, 211, .2); }
-.video-type-tab span { color: #8fa8c8; font-size: 10px; font-variant-numeric: tabular-nums; }
+.video-tag-tabs { display: flex; align-items: center; gap: 8px; min-width: 0; overflow-x: auto; padding: 3px 1px 7px; scrollbar-width: thin; }
+.video-tag-tab { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; min-height: 36px; padding: 0 13px; border: 1px solid rgba(180, 203, 235, .13); border-radius: 999px; color: #a9bad0; font-size: 12px; background: rgba(255, 255, 255, .035); cursor: pointer; transition: border-color .18s ease, background .18s ease, color .18s ease; }
+.video-tag-tab:hover, .video-tag-tab.active { border-color: rgba(102, 170, 255, .5); color: #edf5ff; background: rgba(65, 132, 211, .2); }
+.video-tag-tab span { color: #8fa8c8; font-size: 10px; font-variant-numeric: tabular-nums; }
 .video-title-search { display: flex; align-items: center; gap: 9px; width: min(330px, 34%); min-width: 210px; height: 38px; flex: 0 0 auto; padding: 0 12px; border: 1px solid rgba(180, 203, 235, .15); border-radius: 10px; color: #82a3cc; background: rgba(5, 13, 24, .34); }
 .video-title-search input { width: 100%; min-width: 0; border: 0; outline: 0; color: #edf3fc; font-size: 12px; background: transparent; }
 .video-title-search input::placeholder { color: #778ba5; }
