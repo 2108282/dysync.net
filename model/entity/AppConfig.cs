@@ -81,7 +81,7 @@ namespace dy.net.model.entity
         public bool SkipFileExistenceCheck { get; set; }
 
         /// <summary>Additional storage roots, serialized as a JSON string array.</summary>
-        [SugarColumn(Length = -1, IsNullable = true)]
+        [SugarColumn(Length = 4000, IsNullable = true)]
         public string StorageExpansionRoots { get; set; }
 
         /// <summary>Switch to another root when remaining space falls below this amount in GB.</summary>
