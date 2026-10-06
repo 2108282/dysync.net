@@ -236,54 +236,61 @@
       <div class="form-section storage-config-section">
         <h3 class="section-title">扩展存储</h3>
         <div class="storage-root-settings-grid">
-          <a-form-item label="扩展存储根目录" name="StorageExpansionRootsText">
-            <a-textarea v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
-            <div class="flex items-start mt-1 text-sm text-gray-500">
+          <div class="storage-setting">
+            <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
+            <a-textarea id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
+            <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
               <span>程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
             </div>
-          </a-form-item>
-          <a-form-item label="切换阈值（GB）" name="StorageMinFreeSpaceGb">
-            <a-input-number v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
-            <div class="flex items-start mt-1 text-sm text-gray-500">
+          </div>
+          <div class="storage-setting">
+            <label class="storage-setting-label" for="storage-min-free-space">切换阈值（GB）</label>
+            <a-input-number id="storage-min-free-space" v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
+            <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
               <span>当前存储位置剩余容量达到此值时，自动切到其他可用根目录。</span>
             </div>
-          </a-form-item>
+          </div>
         </div>
         <div class="storage-active-roots-grid">
-          <a-form-item label="收藏视频" name="ActiveCollectStorageRootIndex">
+          <div class="storage-setting">
+            <label class="storage-setting-label">收藏视频</label>
             <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
               <a-select-option :value="0">原收藏路径</a-select-option>
               <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
             </a-select>
-          </a-form-item>
-          <a-form-item label="喜欢视频" name="ActiveFavoriteStorageRootIndex">
+          </div>
+          <div class="storage-setting">
+            <label class="storage-setting-label">喜欢视频</label>
             <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
               <a-select-option :value="0">原喜欢路径</a-select-option>
               <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
             </a-select>
-          </a-form-item>
-          <a-form-item label="博主视频" name="ActiveFollowedStorageRootIndex">
+          </div>
+          <div class="storage-setting">
+            <label class="storage-setting-label">博主视频</label>
             <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
               <a-select-option :value="0">原博主路径</a-select-option>
               <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
             </a-select>
-          </a-form-item>
-          <a-form-item label="合集视频" name="ActiveMixStorageRootIndex">
+          </div>
+          <div class="storage-setting">
+            <label class="storage-setting-label">合集视频</label>
             <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
               <a-select-option :value="0">原合集路径</a-select-option>
               <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
             </a-select>
-          </a-form-item>
-          <a-form-item label="短剧视频" name="ActiveSeriesStorageRootIndex">
+          </div>
+          <div class="storage-setting">
+            <label class="storage-setting-label">短剧视频</label>
             <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
               <a-select-option :value="0">原短剧路径</a-select-option>
               <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
             </a-select>
-          </a-form-item>
+          </div>
         </div>
-        <div class="flex items-start mt-1 text-sm text-gray-500">
+        <div class="storage-setting-help storage-setting-footer-help">
           <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
           <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
         </div>
@@ -1757,43 +1764,56 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 
 .storage-root-settings-grid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
-  column-gap: 18px;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 18px;
   align-items: start;
 }
 
 .storage-active-roots-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  column-gap: 18px;
+  gap: 18px;
   align-items: start;
+  margin-top: 8px;
 }
 
-.storage-config-section :deep(.ant-form-item-row) {
-  display: block;
-}
-
-.storage-config-section :deep(.ant-form-item-label) {
-  width: 100% !important;
-  max-width: 100% !important;
-  flex: 0 0 100% !important;
-  padding: 0 0 5px !important;
-  text-align: left !important;
-}
-
-.storage-config-section :deep(.ant-form-item-label > label) {
-  width: 100%;
-  justify-content: flex-start !important;
-}
-
-.storage-config-section :deep(.ant-form-item-control) {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin-left: 0 !important;
-}
-
-.storage-active-roots-grid :deep(.ant-form-item) {
+.storage-setting {
   min-width: 0;
+}
+
+.storage-setting-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #394150;
+  font-weight: 600;
+}
+
+.storage-setting :deep(.ant-input-number),
+.storage-setting :deep(.ant-input),
+.storage-setting :deep(.ant-select) {
+  width: 100%;
+}
+
+.storage-setting-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  color: #8992a1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.storage-setting-help :deep(.anticon) {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.storage-setting-footer-help {
+  margin-top: 4px;
 }
 
 @media (max-width: 1380px) {
@@ -1854,6 +1874,15 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
 /* 暗色主题保持原有配色，只应用布局 */
 html.dark-mode .config-columns {
   background: transparent;
+}
+
+html.dark-mode .storage-setting-label {
+  color: #d1d5db;
+}
+
+html.dark-mode .storage-setting-help {
+  background: rgba(255, 255, 255, 0.06);
+  color: #9ca3af;
 }
 
 /* 中等屏幕改为等宽双列 */
