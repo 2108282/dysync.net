@@ -11,3 +11,5 @@ data1
 /db/database.json
 /db/database-migration-history.json
 /db/database-migration-status.json
+/db/database2.json
+/db

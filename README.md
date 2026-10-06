@@ -129,14 +129,22 @@ services:
     restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
       - "10101:10101" 
-    # 新增可选设置，启用后直接使用该数据连接进行数据库初始化。
-    # environment:
-    #   DB_TYPE: "MySql"  # Sqlite、MySql 或 PostgreSql
-    #   DB_HOST: "mysql"  # 数据库地址（Compose 网络内可用服务名）
-    #   DB_PORT: "3306"
-    #   DB_NAME: "dysync"
-    #   DB_USER: "your_user"
-    #   DB_PASSWORD: "your_password"
+    
+    environment:
+      # 不限制GC堆最大内存，由.NET运行时根据实际负载管理
+      # 禁用服务器GC，改用工作站GC（轻量应用更友好）
+      - COMPlus_GCServer=0
+      # 强制GC回收后尽量释放内存给操作系统（Linux）
+      - COMPlus_GCConserveMemory=1
+      # 可选：显示GC日志（排查内存问题时用）
+      # - COMPlus_GCLogFile=/app/gc.log
+      # 新增可选设置，启用后直接使用该数据连接进行数据库初始化，根据自己真实数据库地址填写
+      - DB_TYPE=MySql
+      - DB_HOST=192.168.2.11
+      - DB_PORT=3306
+      - DB_NAME=dysync
+      - DB_USER=dysync
+      - DB_PASSWORD=111
     volumes:
       # 基础路径映射
       - /vol2/1000/media/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
