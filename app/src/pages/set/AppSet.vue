@@ -500,7 +500,7 @@ const getConfig = () => {
 
         Object.assign(formState, {
           Cron: res.data.cron,
-          Id: res.data.id,
+          Id: String(res.data.id ?? res.data.Id ?? formState.Id),
           BatchCount: res.data.batchCount,
           DownImageVideo: res.data.downImageVideo,
           UperUseViedoTitle: res.data.uperUseViedoTitle,
