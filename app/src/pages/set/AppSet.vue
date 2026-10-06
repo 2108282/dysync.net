@@ -684,9 +684,10 @@ const onSubmit = () => {
       useApiStore()
         .apiUpdateConfig(submitData)
         .then((res) => {
-          if (res.code === 0) {
+          if (res.code === 0 && res.data !== false) {
             message.success('修改成功，同步任务将在5-10秒按新配置运行...');
             componentDisabled.value = true;
+            getConfig();
           } else {
             message.error(res.message || '更新配置失败', 8);
           }
