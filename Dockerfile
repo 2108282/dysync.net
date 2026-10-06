@@ -5,12 +5,14 @@ WORKDIR /app
 EXPOSE 10101
 
 
-RUN echo "deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian-security/ bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
-    echo "deb http://mirrors.aliyun.com/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg intel-media-va-driver-non-free vainfo && \
+RUN printf '%s\n' \
+      "deb https://deb.debian.org/debian bookworm main contrib non-free non-free-firmware" \
+      "deb https://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" \
+      "deb https://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" \
+      "deb https://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" \
+      > /etc/apt/sources.list && \
+    apt-get -o Acquire::Retries=5 update && \
+    apt-get -o Acquire::Retries=5 install -y --no-install-recommends ffmpeg intel-media-va-driver-non-free vainfo && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ffmpeg -version
