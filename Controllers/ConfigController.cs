@@ -448,8 +448,9 @@ namespace dy.net.Controllers
                 }
 
                 await ReStartJobAsync();
+                return ApiResult.Success(true);
             }
-            return ApiResult.Success(update);
+            return ApiResult.Fail("配置未更新，请刷新页面后重试");
         }
 
         /// <summary>
