@@ -83,56 +83,6 @@
               <a-switch v-model:checked="formState.CloseNfo" />
 
             </a-form-item>
-            <a-form-item label="扩展存储根目录" name="StorageExpansionRootsText">
-              <a-textarea v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
-              </div>
-            </a-form-item>
-            <a-form-item label="切换阈值（GB）" name="StorageMinFreeSpaceGb">
-              <a-input-number v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>当前存储位置剩余容量低于此值时，自动切到后续扩展根目录。</span>
-              </div>
-            </a-form-item>
-            <div class="storage-root-grid">
-            <a-form-item label="收藏当前存储位置" name="ActiveCollectStorageRootIndex">
-              <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
-                <a-select-option :value="0">原收藏路径</a-select-option>
-                <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="喜欢当前存储位置" name="ActiveFavoriteStorageRootIndex">
-              <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
-                <a-select-option :value="0">原喜欢路径</a-select-option>
-                <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="博主当前存储位置" name="ActiveFollowedStorageRootIndex">
-              <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
-                <a-select-option :value="0">原博主路径</a-select-option>
-                <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="合集当前存储位置" name="ActiveMixStorageRootIndex">
-              <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
-                <a-select-option :value="0">原合集路径</a-select-option>
-                <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="短剧当前存储位置" name="ActiveSeriesStorageRootIndex">
-              <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
-                <a-select-option :value="0">原短剧路径</a-select-option>
-                <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
-              </a-select>
-              <div class="flex items-start mt-1 text-sm text-gray-500">
-                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-                <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
-              </div>
-            </a-form-item>
-            </div>
             <a-form-item label="忽略文件存在检查" name="SkipFileExistenceCheck">
               <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
               <div class="flex items-start mt-1 text-sm text-gray-500">
@@ -281,6 +231,61 @@
               </a-space>
             </a-form-item>
           </div>
+        </div>
+      </div>
+      <div class="form-section storage-config-section">
+        <h3 class="section-title">扩展存储</h3>
+        <div class="storage-root-settings-grid">
+          <a-form-item label="扩展存储根目录" name="StorageExpansionRootsText">
+            <a-textarea v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
+            <div class="flex items-start mt-1 text-sm text-gray-500">
+              <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+              <span>程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
+            </div>
+          </a-form-item>
+          <a-form-item label="切换阈值（GB）" name="StorageMinFreeSpaceGb">
+            <a-input-number v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
+            <div class="flex items-start mt-1 text-sm text-gray-500">
+              <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+              <span>当前存储位置剩余容量达到此值时，自动切到其他可用根目录。</span>
+            </div>
+          </a-form-item>
+        </div>
+        <div class="storage-active-roots-grid">
+          <a-form-item label="收藏视频" name="ActiveCollectStorageRootIndex">
+            <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
+              <a-select-option :value="0">原收藏路径</a-select-option>
+              <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="喜欢视频" name="ActiveFavoriteStorageRootIndex">
+            <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
+              <a-select-option :value="0">原喜欢路径</a-select-option>
+              <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="博主视频" name="ActiveFollowedStorageRootIndex">
+            <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
+              <a-select-option :value="0">原博主路径</a-select-option>
+              <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="合集视频" name="ActiveMixStorageRootIndex">
+            <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
+              <a-select-option :value="0">原合集路径</a-select-option>
+              <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="短剧视频" name="ActiveSeriesStorageRootIndex">
+            <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
+              <a-select-option :value="0">原短剧路径</a-select-option>
+              <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
+            </a-select>
+          </a-form-item>
+        </div>
+        <div class="flex items-start mt-1 text-sm text-gray-500">
+          <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+          <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
         </div>
       </div>
     </a-form>
@@ -1745,19 +1750,64 @@ html.dark-mode .title-template-item :deep(.ant-select-selection-overflow::-webki
   box-sizing: border-box;
 }
 
-.storage-root-grid {
+.storage-config-section {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.storage-root-settings-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
   column-gap: 18px;
   align-items: start;
 }
 
-.storage-root-grid :deep(.ant-form-item) {
+.storage-active-roots-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: 18px;
+  align-items: start;
+}
+
+.storage-config-section :deep(.ant-form-item-row) {
+  display: block;
+}
+
+.storage-config-section :deep(.ant-form-item-label) {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  padding: 0 0 5px !important;
+  text-align: left !important;
+}
+
+.storage-config-section :deep(.ant-form-item-label > label) {
+  width: 100%;
+  justify-content: flex-start !important;
+}
+
+.storage-config-section :deep(.ant-form-item-control) {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+}
+
+.storage-active-roots-grid :deep(.ant-form-item) {
   min-width: 0;
 }
 
 @media (max-width: 1380px) {
-  .storage-root-grid {
+  .storage-root-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storage-active-roots-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .storage-active-roots-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
