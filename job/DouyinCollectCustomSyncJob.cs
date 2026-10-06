@@ -18,7 +18,8 @@ namespace dy.net.job
         {
             if (cate != null)
             {
-                var folder = Path.Combine(cookie.SavePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
+                var storageBasePath = GetStorageBasePath(cookie, config);
+                var folder = Path.Combine(storageBasePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true));
                 if (!Directory.Exists(folder))
                 {
                     Directory.CreateDirectory(folder);
@@ -27,7 +28,7 @@ namespace dy.net.job
                 {
                     //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
 
-                    folder = Path.Combine(cookie.SavePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)+"_"+item.AwemeId);
+                    folder = Path.Combine(storageBasePath, DouyinFileNameHelper.SanitizeLinuxFileName(cate.SaveFolder, "", true), DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true)+"_"+item.AwemeId);
                 }
                 return folder;
             }
@@ -38,7 +39,7 @@ namespace dy.net.job
         }
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
-            return Path.Combine(cookie.SavePath, "author");
+            return Path.Combine(GetStorageBasePath(cookie, douyinCommonService.GetConfig()), "author");
         }
 
         protected override async Task<DouyinVideoInfoResponse> FetchVideoData(DouyinCookie cookie, string cursor, DouyinFollowed followed, DouyinCollectCate cate)

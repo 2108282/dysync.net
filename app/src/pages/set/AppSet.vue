@@ -83,6 +83,61 @@
               <a-switch v-model:checked="formState.CloseNfo" />
 
             </a-form-item>
+            <a-form-item label="扩展存储根目录" name="StorageExpansionRootsText">
+              <a-textarea v-model:value="formState.StorageExpansionRootsText" :rows="3" placeholder="每行填写一个容器内可写目录，例如 /storage2、/storage3" />
+              <div class="flex items-start mt-1 text-sm text-gray-500">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
+              </div>
+            </a-form-item>
+            <a-form-item label="切换阈值（GB）" name="StorageMinFreeSpaceGb">
+              <a-input-number v-model:value="formState.StorageMinFreeSpaceGb" :min="0" :max="100000" />
+              <div class="flex items-start mt-1 text-sm text-gray-500">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>当前存储位置剩余容量低于此值时，自动切到后续扩展根目录。</span>
+              </div>
+            </a-form-item>
+            <a-form-item label="收藏当前存储位置" name="ActiveCollectStorageRootIndex">
+              <a-select v-model:value="formState.ActiveCollectStorageRootIndex" style="width: 100%">
+                <a-select-option :value="0">原收藏路径</a-select-option>
+                <a-select-option v-for="(path, index) in expansionRoots" :key="`collect-${path}`" :value="index + 1">{{ path }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="喜欢当前存储位置" name="ActiveFavoriteStorageRootIndex">
+              <a-select v-model:value="formState.ActiveFavoriteStorageRootIndex" style="width: 100%">
+                <a-select-option :value="0">原喜欢路径</a-select-option>
+                <a-select-option v-for="(path, index) in expansionRoots" :key="`favorite-${path}`" :value="index + 1">{{ path }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="博主当前存储位置" name="ActiveFollowedStorageRootIndex">
+              <a-select v-model:value="formState.ActiveFollowedStorageRootIndex" style="width: 100%">
+                <a-select-option :value="0">原博主路径</a-select-option>
+                <a-select-option v-for="(path, index) in expansionRoots" :key="`followed-${path}`" :value="index + 1">{{ path }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="合集当前存储位置" name="ActiveMixStorageRootIndex">
+              <a-select v-model:value="formState.ActiveMixStorageRootIndex" style="width: 100%">
+                <a-select-option :value="0">原合集路径</a-select-option>
+                <a-select-option v-for="(path, index) in expansionRoots" :key="`mix-${path}`" :value="index + 1">{{ path }}</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="短剧当前存储位置" name="ActiveSeriesStorageRootIndex">
+              <a-select v-model:value="formState.ActiveSeriesStorageRootIndex" style="width: 100%">
+                <a-select-option :value="0">原短剧路径</a-select-option>
+                <a-select-option v-for="(path, index) in expansionRoots" :key="`series-${path}`" :value="index + 1">{{ path }}</a-select-option>
+              </a-select>
+              <div class="flex items-start mt-1 text-sm text-gray-500">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>可分别手动切换各类型后续新视频的存储根目录，已下载文件不会移动。</span>
+              </div>
+            </a-form-item>
+            <a-form-item label="忽略文件存在检查" name="SkipFileExistenceCheck">
+              <a-switch v-model:checked="formState.SkipFileExistenceCheck" />
+              <div class="flex items-start mt-1 text-sm text-gray-500">
+                <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
+                <span>开启后，同步只按数据库记录判断是否已下载。即使文件被移动或原路径不可用，也不会重新下载；同步记录和海报墙将无法播放这些文件。</span>
+              </div>
+            </a-form-item>
           </div>
         </div>
 
@@ -333,6 +388,14 @@ interface FormState {
   OnlySyncNew: boolean;
   VideoEncoder: number;
   CloseNfo: boolean;
+  SkipFileExistenceCheck: boolean;
+  StorageExpansionRootsText: string;
+  StorageMinFreeSpaceGb: number;
+  ActiveCollectStorageRootIndex: number;
+  ActiveFavoriteStorageRootIndex: number;
+  ActiveFollowedStorageRootIndex: number;
+  ActiveMixStorageRootIndex: number;
+  ActiveSeriesStorageRootIndex: number;
 }
 
 // 表单初始数据
@@ -358,7 +421,20 @@ const formState: UnwrapRef<FormState> = reactive({
   OnlySyncNew: false,
   VideoEncoder: 264,
   CloseNfo: false,
+  SkipFileExistenceCheck: false,
+  StorageExpansionRootsText: '',
+  StorageMinFreeSpaceGb: 10,
+  ActiveCollectStorageRootIndex: 0,
+  ActiveFavoriteStorageRootIndex: 0,
+  ActiveFollowedStorageRootIndex: 0,
+  ActiveMixStorageRootIndex: 0,
+  ActiveSeriesStorageRootIndex: 0,
 });
+
+const expansionRoots = computed(() => formState.StorageExpansionRootsText
+  .split(/\r?\n/)
+  .map((path) => path.trim())
+  .filter((path) => path.length > 0));
 
 // 实时计算完整模板
 const computeFullTemplate = computed(() => {
@@ -433,6 +509,17 @@ const getConfig = () => {
           OnlySyncNew: res.data.onlySyncNew,
           VideoEncoder: res.data.videoEncoder,
           CloseNfo: res.data.closeNfo,
+          SkipFileExistenceCheck: res.data.skipFileExistenceCheck || false,
+          StorageExpansionRootsText: (() => {
+            try { return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('\n'); }
+            catch { return ''; }
+          })(),
+          StorageMinFreeSpaceGb: res.data.storageMinFreeSpaceGb ?? 10,
+          ActiveCollectStorageRootIndex: res.data.activeCollectStorageRootIndex || 0,
+          ActiveFavoriteStorageRootIndex: res.data.activeFavoriteStorageRootIndex || 0,
+          ActiveFollowedStorageRootIndex: res.data.activeFollowedStorageRootIndex || 0,
+          ActiveMixStorageRootIndex: res.data.activeMixStorageRootIndex || 0,
+          ActiveSeriesStorageRootIndex: res.data.activeSeriesStorageRootIndex || 0,
         });
 
         tagData.value = JSON.parse(res.data.priorityLevel || '[]');
@@ -572,6 +659,12 @@ const onSubmit = () => {
 
       const submitData = {
         ...toRaw(formState),
+        StorageExpansionRoots: JSON.stringify(expansionRoots.value),
+        ActiveCollectStorageRootIndex: Math.min(formState.ActiveCollectStorageRootIndex, expansionRoots.value.length),
+        ActiveFavoriteStorageRootIndex: Math.min(formState.ActiveFavoriteStorageRootIndex, expansionRoots.value.length),
+        ActiveFollowedStorageRootIndex: Math.min(formState.ActiveFollowedStorageRootIndex, expansionRoots.value.length),
+        ActiveMixStorageRootIndex: Math.min(formState.ActiveMixStorageRootIndex, expansionRoots.value.length),
+        ActiveSeriesStorageRootIndex: Math.min(formState.ActiveSeriesStorageRootIndex, expansionRoots.value.length),
         FullFollowedTitleTemplate: fullTemplate,
         FollowedTitleTemplate: formState.FollowedTitleTemplate.join(''),
         PriorityLevel: JSON.stringify(tagData.value),

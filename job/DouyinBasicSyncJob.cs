@@ -213,7 +213,7 @@ namespace dy.net.job
         protected virtual string CreateSaveFolder(DouyinCookie cookie, Aweme item, AppConfig config, DouyinFollowed followed, DouyinCollectCate cate)
         {
             var subFolder = DouyinFileNameHelper.SanitizeLinuxFileName(item.Desc, item.AwemeId, true);
-            var folder = Path.Combine(cookie.SavePath, subFolder);
+            var folder = Path.Combine(GetStorageBasePath(cookie, config), subFolder);
             if (!Directory.Exists(folder))
             {
                 Directory.CreateDirectory(folder);
@@ -222,10 +222,171 @@ namespace dy.net.job
             {
                 //说明文件夹存在，检查里面有没有文件，如果已经有视频文件了，说明视频标题相同，那么应该重新创建文件夹,+id
 
-                folder = Path.Combine(cookie.SavePath, subFolder + "_" + item.AwemeId);
+                folder = Path.Combine(GetStorageBasePath(cookie, config), subFolder + "_" + item.AwemeId);
             }
             return folder;
 
+        }
+
+        protected string GetStorageBasePath(DouyinCookie cookie, AppConfig config)
+        {
+            var activeIndex = GetActiveStorageRootIndex(config);
+            if (activeIndex <= 0)
+            {
+                return VideoType switch
+                {
+                    VideoTypeEnum.dy_favorite => cookie.FavSavePath,
+                    VideoTypeEnum.dy_follows => cookie.UpSavePath,
+                    VideoTypeEnum.dy_mix => string.IsNullOrWhiteSpace(cookie.MixPath) ? cookie.SavePath : cookie.MixPath,
+                    VideoTypeEnum.dy_series => string.IsNullOrWhiteSpace(cookie.SeriesPath) ? cookie.SavePath : cookie.SeriesPath,
+                    _ => cookie.SavePath
+                };
+            }
+
+            var roots = ParseStorageExpansionRoots(config.StorageExpansionRoots);
+            var rootIndex = activeIndex - 1;
+            if (rootIndex < 0 || rootIndex >= roots.Count)
+                return GetPrimaryStorageBasePath(cookie);
+
+            var typeFolder = VideoType switch
+            {
+                VideoTypeEnum.dy_favorite => "favorite",
+                VideoTypeEnum.dy_follows => "followed",
+                VideoTypeEnum.dy_mix => "mix",
+                VideoTypeEnum.dy_series => "series",
+                VideoTypeEnum.dy_custom_collect => "custom-collect",
+                _ => "collect"
+            };
+            return Path.Combine(roots[rootIndex], typeFolder, cookie.Id);
+        }
+
+        private string GetPrimaryStorageBasePath(DouyinCookie cookie) => VideoType switch
+        {
+            VideoTypeEnum.dy_favorite => cookie.FavSavePath,
+            VideoTypeEnum.dy_follows => cookie.UpSavePath,
+            VideoTypeEnum.dy_mix => string.IsNullOrWhiteSpace(cookie.MixPath) ? cookie.SavePath : cookie.MixPath,
+            VideoTypeEnum.dy_series => string.IsNullOrWhiteSpace(cookie.SeriesPath) ? cookie.SavePath : cookie.SeriesPath,
+            _ => cookie.SavePath
+        };
+
+        private static List<string> ParseStorageExpansionRoots(string json)
+        {
+            try
+            {
+                return (JsonConvert.DeserializeObject<List<string>>(json ?? "[]") ?? new List<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(Path.GetFullPath)
+                    .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        private async Task<bool> EnsureStorageCapacityAsync(DouyinCookie cookie, AppConfig config)
+        {
+            var roots = ParseStorageExpansionRoots(config.StorageExpansionRoots);
+            if (roots.Count == 0)
+                return true;
+
+            var thresholdBytes = Math.Max(0, config.StorageMinFreeSpaceGb) * 1024L * 1024L * 1024L;
+            var currentIndex = Math.Clamp(GetActiveStorageRootIndex(config), 0, roots.Count);
+            var currentPath = currentIndex == 0 ? GetPrimaryStorageBasePath(cookie) : GetStorageBasePath(cookie, config);
+            var currentExpansionRoot = currentIndex == 0 ? null : roots[currentIndex - 1];
+            if (HasRequiredStorageSpace(currentPath, thresholdBytes, currentExpansionRoot))
+                return true;
+
+            var rootCountIncludingPrimary = roots.Count + 1;
+            for (var offset = 1; offset < rootCountIncludingPrimary; offset++)
+            {
+                var index = (currentIndex + offset) % rootCountIncludingPrimary;
+                var expansionRoot = index == 0 ? null : roots[index - 1];
+                var candidatePath = index == 0
+                    ? GetPrimaryStorageBasePath(cookie)
+                    : GetExpansionStorageBasePath(cookie, expansionRoot);
+                if (!HasRequiredStorageSpace(candidatePath, thresholdBytes, expansionRoot))
+                    continue;
+
+                SetActiveStorageRootIndex(config, index);
+                await douyinCommonService.UpdateStorageRootIndexAsync(VideoType, index);
+                Log.Information("[{VideoType}]存储剩余容量低于{ThresholdGb}GB，自动切换到扩展根目录{RootIndex}: {StoragePath}", VideoType.GetDesc(), config.StorageMinFreeSpaceGb, index, candidatePath);
+                return true;
+            }
+
+            Log.Warning("[{VideoType}]所有存储目录剩余容量均低于阈值{ThresholdGb}GB，跳过本次下载", VideoType.GetDesc(), config.StorageMinFreeSpaceGb);
+            return false;
+        }
+
+        private string GetExpansionStorageBasePath(DouyinCookie cookie, string root)
+        {
+            var typeFolder = VideoType switch
+            {
+                VideoTypeEnum.dy_favorite => "favorite",
+                VideoTypeEnum.dy_follows => "followed",
+                VideoTypeEnum.dy_mix => "mix",
+                VideoTypeEnum.dy_series => "series",
+                VideoTypeEnum.dy_custom_collect => "custom-collect",
+                _ => "collect"
+            };
+            return Path.Combine(root, typeFolder, cookie.Id);
+        }
+
+        private int GetActiveStorageRootIndex(AppConfig config) => VideoType switch
+        {
+            VideoTypeEnum.dy_favorite => config.ActiveFavoriteStorageRootIndex,
+            VideoTypeEnum.dy_follows => config.ActiveFollowedStorageRootIndex,
+            VideoTypeEnum.dy_mix => config.ActiveMixStorageRootIndex,
+            VideoTypeEnum.dy_series => config.ActiveSeriesStorageRootIndex,
+            _ => config.ActiveCollectStorageRootIndex
+        };
+
+        private void SetActiveStorageRootIndex(AppConfig config, int index)
+        {
+            switch (VideoType)
+            {
+                case VideoTypeEnum.dy_favorite: config.ActiveFavoriteStorageRootIndex = index; break;
+                case VideoTypeEnum.dy_follows: config.ActiveFollowedStorageRootIndex = index; break;
+                case VideoTypeEnum.dy_mix: config.ActiveMixStorageRootIndex = index; break;
+                case VideoTypeEnum.dy_series: config.ActiveSeriesStorageRootIndex = index; break;
+                default: config.ActiveCollectStorageRootIndex = index; break;
+            }
+        }
+
+        private static bool HasRequiredStorageSpace(string path, long thresholdBytes, string requiredRoot = null)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(requiredRoot) && !Directory.Exists(requiredRoot))
+                    return false;
+                Directory.CreateDirectory(path);
+                if (!DouyinFileUtils.HasDirectoryReadWritePermission(path))
+                    return false;
+
+                var fullPath = Path.GetFullPath(path);
+                var drives = DriveInfo.GetDrives()
+                    .Where(x => x.IsReady && IsSameOrChildPath(Path.GetFullPath(x.Name), fullPath))
+                    .OrderByDescending(x => x.Name.Length)
+                    .ToList();
+                var drive = drives.FirstOrDefault() ?? new DriveInfo(Path.GetPathRoot(fullPath)!);
+                return drive.IsReady && drive.AvailableFreeSpace > thresholdBytes;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsSameOrChildPath(string root, string path)
+        {
+            var relative = Path.GetRelativePath(root, path);
+            return relative == "." || (!Path.IsPathRooted(relative)
+                && relative != ".."
+                && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal));
         }
 
         /// <summary>
@@ -684,6 +845,13 @@ namespace dy.net.job
 
                 // 查询数据库中是否已存在该视频（通过 AwemeId 唯一标识）
                 existingVideos.TryGetValue(item.AwemeId, out var exitVideo);
+
+                // 用户自行移动或整理文件时，只要数据库已有记录就视为已同步，避免因原路径失效而重复下载。
+                if (config.SkipFileExistenceCheck && exitVideo != null)
+                {
+                    continue;
+                }
+
                 var existingFileExists = exitVideo != null
                     && !string.IsNullOrWhiteSpace(exitVideo.VideoSavePath)
                     && File.Exists(exitVideo.VideoSavePath);
@@ -693,6 +861,9 @@ namespace dy.net.job
                 {
                     continue;
                 }
+
+                if (!await EnsureStorageCapacityAsync(cookie, config))
+                    continue;
 
                 if (exitVideo != null)
                 {

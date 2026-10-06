@@ -31,7 +31,7 @@ namespace dy.net.job
         //}
         protected override string GetAuthorAvatarBasePath(DouyinCookie cookie)
         {
-            return Path.Combine(cookie.UpSavePath, "author");
+            return Path.Combine(GetStorageBasePath(cookie, douyinCommonService.GetConfig()), "author");
         }
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace dy.net.job
                 : DouyinFileNameHelper.SanitizeLinuxFileName(rawAuthorName, "", true);
             // 2. 确定最终文件夹路径（遵循原有优先级：followed.SavePath > authorName > 基础路径）
             var targetFolderName = !string.IsNullOrWhiteSpace(followed?.SavePath) ? followed.SavePath : authorName;
-            var rootFolder = Path.Combine(cookie.UpSavePath, targetFolderName);
+            var rootFolder = Path.Combine(GetStorageBasePath(cookie, config), targetFolderName);
 
             if (!Directory.Exists(rootFolder)) Directory.CreateDirectory(rootFolder);
             #endregion
