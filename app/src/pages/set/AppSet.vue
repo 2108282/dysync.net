@@ -224,18 +224,10 @@
         <div class="storage-root-settings-grid">
           <div class="storage-setting">
             <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
-            <div class="storage-root-entry">
-              <a-input id="storage-expansion-roots" v-model:value="storageExpansionRootDraft" placeholder="输入一个根目录，例如 D:\DouyinStorage；Docker 填容器路径，如 /storage2" @pressEnter="addStorageExpansionRoot" />
-              <a-button @click="addStorageExpansionRoot">添加</a-button>
-            </div>
-            <div v-if="expansionRoots.length" class="storage-root-tags">
-              <a-tag v-for="(path, index) in expansionRoots" :key="path" closable @close="removeStorageExpansionRoot(index)">
-                {{ path }}
-              </a-tag>
-            </div>
+            <a-input id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" placeholder="多个根目录用英文分号 ; 隔开，例如 D:\DouyinStorage1; D:\DouyinStorage2" />
             <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span>逐个添加根目录。程序会在根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
+              <span>多个根目录用英文分号 ; 分隔。程序会在各根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
             </div>
           </div>
           <div class="storage-setting">
@@ -451,23 +443,9 @@ const formState: UnwrapRef<FormState> = reactive({
 });
 
 const expansionRoots = computed(() => formState.StorageExpansionRootsText
-  .split(/\r?\n/)
+  .split(';')
   .map((path) => path.trim())
   .filter((path) => path.length > 0));
-const storageExpansionRootDraft = ref('');
-
-const addStorageExpansionRoot = () => {
-  const path = storageExpansionRootDraft.value.trim();
-  if (!path || expansionRoots.value.includes(path)) return;
-  formState.StorageExpansionRootsText = [...expansionRoots.value, path].join('\n');
-  storageExpansionRootDraft.value = '';
-};
-
-const removeStorageExpansionRoot = (index: number) => {
-  const roots = [...expansionRoots.value];
-  roots.splice(index, 1);
-  formState.StorageExpansionRootsText = roots.join('\n');
-};
 
 // 实时计算完整模板
 const computeFullTemplate = computed(() => {
@@ -544,7 +522,7 @@ const getConfig = () => {
           CloseNfo: res.data.closeNfo,
           SkipFileExistenceCheck: res.data.skipFileExistenceCheck || false,
           StorageExpansionRootsText: (() => {
-            try { return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('\n'); }
+            try { return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('; '); }
             catch { return ''; }
           })(),
           StorageMinFreeSpaceGb: res.data.storageMinFreeSpaceGb ?? 10,
