@@ -130,7 +130,7 @@ export const useApiStore = defineStore('coreapi', () => {
       'get'
     );
   }
-  async function VideoAuthorOptions(keyword: string, take = 20) {
+  async function VideoAuthorOptions(keyword: string, take = 10) {
     const params = new URLSearchParams({ keyword, take: String(take) });
     return http.request<any, Response<any>>(
       `/api/video/statics/authors/search?${params.toString()}`,

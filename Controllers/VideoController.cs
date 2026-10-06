@@ -88,7 +88,7 @@ namespace dy.net.Controllers
         [HttpGet("statics/authors/search")]
         public async Task<IActionResult> SearchAuthorOptionsAsync(
             [FromQuery] string keyword,
-            [FromQuery] int take = 20)
+            [FromQuery] int take = 10)
         {
             var (list, totalCount) = await douyinVideoService.SearchAuthorOptionsAsync(keyword, take);
             return ApiResult.Success(new { data = list, total = totalCount });

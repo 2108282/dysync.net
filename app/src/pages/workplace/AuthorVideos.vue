@@ -1,19 +1,5 @@
 <template>
   <main class="author-videos-page">
-    <header class="author-header">
-      <button class="back-button" type="button" @click="backToDashboard" aria-label="返回数据看板">←</button>
-      <div class="author-heading">
-        <div class="author-avatar">
-          <img v-if="selectedAuthorIcon" :src="selectedAuthorIcon" :alt="selectedAuthorName" />
-          <span v-else>{{ selectedAuthorName.slice(0, 1) || '博' }}</span>
-        </div>
-        <div class="author-heading-copy">
-          <h1>{{ selectedAuthorName || '博主视频' }}</h1>
-          <p>{{ total }} 个已同步视频</p>
-        </div>
-      </div>
-      <span class="header-caption">视频海报墙</span>
-    </header>
 
     <section class="author-switcher">
       <button class="switcher-toggle" type="button" :aria-expanded="filterExpanded" @click="filterExpanded = !filterExpanded">
@@ -48,7 +34,7 @@
           <span v-if="!authorSearching && !searchResults.length" class="search-hint">没有找到匹配的博主</span>
         </div>
 
-        <div v-else class="switch-author-row" aria-label="视频数量前20位博主">
+        <div v-else class="switch-author-row" aria-label="视频数量前10位博主">
           <button
             v-for="author in switchAuthors"
             :key="author.uperId || author.name"
@@ -81,7 +67,15 @@
       </div>
 
       <div v-else class="poster-grid">
-        <article v-for="video in videos" :key="video.id" class="poster-card">
+        <article
+          v-for="video in videos"
+          :key="video.id"
+          class="poster-card"
+          role="button"
+          tabindex="0"
+          @click="playVideo(video)"
+          @keydown.enter="playVideo(video)"
+        >
           <div class="poster-image">
             <img
               v-if="video.videoCoverUrl"
@@ -108,12 +102,33 @@
       </div>
       <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     </section>
+
+    <div v-if="activeVideo" class="video-player-overlay" @click.self="closePlayer">
+      <section class="video-player-dialog" role="dialog" aria-modal="true" :aria-label="activeVideo.videoTitle || '视频播放'">
+        <header class="video-player-header">
+          <h2>{{ activeVideo.videoTitle || '视频播放' }}</h2>
+          <button type="button" aria-label="关闭播放器" @click="closePlayer">×</button>
+        </header>
+        <div class="video-player-body">
+          <video
+            v-if="!playError"
+            :key="activeVideo.id"
+            :src="`/api/video/play/${encodeURIComponent(activeVideo.id)}`"
+            controls
+            autoplay
+            playsinline
+            @error="playError = true"
+          />
+          <p v-else class="play-error">视频文件无法播放，可能尚未下载或文件已移除。</p>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useApiStore } from '@/store';
 
 interface AuthorVideo {
@@ -133,7 +148,6 @@ interface AuthorOption {
 
 const PAGE_SIZE = 48;
 const route = useRoute();
-const router = useRouter();
 const filterExpanded = ref(false);
 const topAuthors = ref<AuthorOption[]>([]);
 const topAuthorsLoading = ref(false);
@@ -142,6 +156,8 @@ const searchResults = ref<AuthorOption[]>([]);
 const authorSearching = ref(false);
 const searchedAuthorKeys = ref(new Set<string>());
 const videos = ref<AuthorVideo[]>([]);
+const activeVideo = ref<AuthorVideo | null>(null);
+const playError = ref(false);
 const total = ref(0);
 const pageIndex = ref(0);
 const loading = ref(false);
@@ -156,7 +172,6 @@ let videosRequestVersion = 0;
 const queryValue = (value: unknown) => Array.isArray(value) ? String(value[0] ?? '') : String(value ?? '');
 const selectedAuthorId = ref(queryValue(route.query.authorId));
 const selectedAuthorName = ref(queryValue(route.query.authorName));
-const selectedAuthorIcon = ref(queryValue(route.query.authorIcon));
 const switchAuthors = computed(() => {
   if (authorSearchInput.value.trim()) return [];
   return topAuthors.value.filter(author => !searchedAuthorKeys.value.has(authorKey(author)));
@@ -227,7 +242,7 @@ async function loadVideos() {
 async function loadTopAuthors() {
   topAuthorsLoading.value = true;
   try {
-    const response = await useApiStore().VideoAuthorStatics(1, 20);
+    const response = await useApiStore().VideoAuthorStatics(1, 10);
     if (response?.code === 0) topAuthors.value = response.data?.data ?? [];
   } catch (error) {
     console.error('加载热门博主失败：', error);
@@ -239,7 +254,7 @@ async function loadTopAuthors() {
 async function searchAuthors(keyword: string) {
   const requestVersion = ++searchVersion;
   try {
-    const response = await useApiStore().VideoAuthorOptions(keyword, 20);
+    const response = await useApiStore().VideoAuthorOptions(keyword, 10);
     if (requestVersion !== searchVersion || keyword !== authorSearchInput.value.trim()) return;
     const results = (response?.code === 0 ? response.data?.data ?? [] : []) as AuthorOption[];
     searchResults.value = results;
@@ -268,7 +283,6 @@ async function selectAuthor(author: AuthorOption) {
   videosRequestVersion++;
   selectedAuthorId.value = author.uperId || '';
   selectedAuthorName.value = author.name;
-  selectedAuthorIcon.value = author.icon || '';
   authorSearchInput.value = '';
   searchResults.value = [];
   videos.value = [];
@@ -281,8 +295,14 @@ async function selectAuthor(author: AuthorOption) {
   await loadVideos();
 }
 
-function backToDashboard() {
-  void router.push('/dashboard');
+function playVideo(video: AuthorVideo) {
+  activeVideo.value = video;
+  playError.value = false;
+}
+
+function closePlayer() {
+  activeVideo.value = null;
+  playError.value = false;
 }
 
 function formatDate(value?: string) {
@@ -306,50 +326,6 @@ function hideBrokenPoster(event: Event) {
     linear-gradient(145deg, #0c1421, #111b2b 55%, #0b1320);
 }
 
-.author-header {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  max-width: 1600px;
-  margin: 0 auto 28px;
-  padding: 22px 26px;
-  border: 1px solid rgba(180, 203, 235, .12);
-  border-radius: 20px;
-  background: rgba(20, 32, 49, .78);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, .18);
-}
-
-.back-button {
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(210, 225, 245, .18);
-  border-radius: 12px;
-  color: #dce8f8;
-  font-size: 26px;
-  line-height: 1;
-  background: rgba(255, 255, 255, .05);
-  cursor: pointer;
-}
-
-.author-heading { display: flex; align-items: center; gap: 15px; min-width: 0; }
-.author-avatar {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  flex: 0 0 auto;
-  overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, .25);
-  border-radius: 50%;
-  color: white;
-  font-size: 25px;
-  background: linear-gradient(135deg, #397fcb, #8a61c5);
-}
-.author-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.author-heading-copy { min-width: 0; }
-.author-heading h1 { overflow: hidden; margin: 0; color: #f7faff; font-size: clamp(21px, 3vw, 29px); text-overflow: ellipsis; white-space: nowrap; }
-.author-heading p { margin: 6px 0 0; color: #9eafc6; font-size: 14px; }
-.header-caption { margin-left: auto; color: #91a8c6; font-size: 13px; letter-spacing: .14em; white-space: nowrap; }
 .author-switcher { max-width: 1600px; margin: 0 auto 24px; overflow: hidden; border: 1px solid rgba(180, 203, 235, .12); border-radius: 15px; background: rgba(20, 32, 49, .68); }
 .switcher-toggle { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 0 18px; border: 0; color: #dce8f8; text-align: left; background: transparent; cursor: pointer; }
 .switcher-toggle-icon { color: #81baff; font-size: 22px; }
@@ -372,7 +348,7 @@ function hideBrokenPoster(event: Event) {
 .search-hint { align-self: center; padding: 0 8px; color: #899bb2; font-size: 12px; white-space: nowrap; }
 .poster-section { max-width: 1600px; margin: 0 auto; }
 .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 20px; }
-.poster-card { overflow: hidden; border: 1px solid rgba(180, 203, 235, .12); border-radius: 15px; background: #172438; transition: transform .2s ease, box-shadow .2s ease; }
+.poster-card { overflow: hidden; border: 1px solid rgba(180, 203, 235, .12); border-radius: 15px; background: #172438; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease; }
 .poster-card:hover { transform: translateY(-4px); box-shadow: 0 14px 32px rgba(0, 0, 0, .3); }
 .poster-image { position: relative; overflow: hidden; aspect-ratio: 3 / 4; background: linear-gradient(145deg, #263b57, #172438); }
 .poster-image img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s ease; }
@@ -390,18 +366,17 @@ function hideBrokenPoster(event: Event) {
 .state-panel strong { color: #e4edf9; font-size: 17px; }
 .state-panel span { color: #8fa1b8; }
 .error-message { margin: 0 auto 18px; color: #ff9b9b; text-align: center; }
+.video-player-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(3, 8, 15, .82); backdrop-filter: blur(8px); }
+.video-player-dialog { display: flex; flex-direction: column; width: min(960px, 96vw); max-height: 92vh; overflow: hidden; border: 1px solid rgba(180, 203, 235, .18); border-radius: 16px; background: #101b2a; box-shadow: 0 24px 80px rgba(0,0,0,.5); }
+.video-player-header { display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 8px 14px 8px 18px; }
+.video-player-header h2 { overflow: hidden; flex: 1; margin: 0; color: #edf3fc; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.video-player-header button { width: 34px; height: 34px; border: 0; border-radius: 8px; color: #dce8f8; font-size: 24px; background: rgba(255,255,255,.08); cursor: pointer; }
+.video-player-body { display: grid; place-items: center; min-height: 180px; background: #05090f; }
+.video-player-body video { display: block; width: 100%; max-height: calc(92vh - 52px); background: #000; }
+.play-error { padding: 30px; color: #ffb4b4; text-align: center; }
 
 @media (max-width: 600px) {
   .author-videos-page { padding: 14px 12px 36px; }
-  .author-header { gap: 12px; margin-bottom: 18px; padding: 15px 13px; border-radius: 15px; }
-  .author-switcher { margin-bottom: 16px; }
-  .switcher-toggle { min-height: 48px; padding: 0 12px; }
-  .switcher-body { padding: 0 11px 12px; }
-  .author-search { margin: 11px 0; }
-  .switch-author-row, .author-search-results { min-height: 62px; }
-  .switch-author { min-width: 145px; }
-  .author-avatar { width: 52px; height: 52px; }
-  .header-caption { display: none; }
-  .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 }
 </style>

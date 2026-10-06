@@ -158,9 +158,9 @@ namespace dy.net.service
 
         public async Task<(List<VideoStaticsItemDto> list, int totalCount)> SearchAuthorOptionsAsync(
             string keyword,
-            int take = 20)
+            int take = 10)
         {
-            take = Math.Clamp(take, 1, 20);
+            take = Math.Clamp(take, 1, 10);
             return await videoStatisticsService.GetAuthorsPagedAsync(1, take, keyword?.Trim());
         }
 
