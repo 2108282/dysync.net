@@ -225,7 +225,7 @@
           <div class="storage-setting">
             <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
             <div class="storage-root-entry">
-              <a-input id="storage-expansion-roots" v-model:value="storageExpansionRootDraft" placeholder="输入容器内目录，例如 /storage2" @pressEnter="addStorageExpansionRoot" />
+              <a-input id="storage-expansion-roots" v-model:value="storageExpansionRootDraft" placeholder="输入一个根目录，例如 D:\DouyinStorage；Docker 填容器路径，如 /storage2" @pressEnter="addStorageExpansionRoot" />
               <a-button @click="addStorageExpansionRoot">添加</a-button>
             </div>
             <div v-if="expansionRoots.length" class="storage-root-tags">
