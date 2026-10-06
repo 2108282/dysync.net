@@ -97,12 +97,20 @@ namespace dy.net.service
         {
 
             var cc = await sqlSugarClient.Queryable<AppConfig>().FirstAsync(x => x.Id == config.Id);
+            // AppConfig is a singleton record. Older clients may omit its string Id or send
+            // the default "0"; fall back to the persisted row and always preserve its key.
+            if (cc == null && (string.IsNullOrWhiteSpace(config.Id) || config.Id == "0"))
+                cc = await sqlSugarClient.Queryable<AppConfig>().FirstAsync();
             if (cc == null)
                 return false;
 
             else
             {
-                int update = await sqlSugarClient.Updateable(config).IgnoreColumns(x => new { x.IsFirstRunning }).ExecuteCommandAsync();
+                config.Id = cc.Id;
+                int update = await sqlSugarClient.Updateable(config)
+                    .IgnoreColumns(x => new { x.IsFirstRunning, x.Id })
+                    .Where(x => x.Id == cc.Id)
+                    .ExecuteCommandAsync();
                 return update > 0;
             }
 
