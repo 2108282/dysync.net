@@ -134,6 +134,9 @@ services:
     restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
       - "10101:10101" 
+    # 可选：Intel 核显硬件编码。仅当宿主机存在 /dev/dri 时取消注释。
+    # devices:
+    #   - /dev/dri:/dev/dri
     environment:
       # 不限制GC堆最大内存，由.NET运行时根据实际负载管理
       # 禁用服务器GC，改用工作站GC（轻量应用更友好）
