@@ -224,10 +224,10 @@
         <div class="storage-root-settings-grid">
           <div class="storage-setting">
             <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
-            <a-input id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" placeholder="多个根目录用英文分号 ; 隔开，例如 D:\DouyinStorage1; D:\DouyinStorage2" />
+            <a-input id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" placeholder="多个根目录用英文分号 ; 隔开，例如 /app1;/app2 " />
             <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span>多个根目录用英文分号 ; 分隔。程序会在各根目录下自动按视频类型和账号创建子目录；Docker 部署需先把新磁盘目录映射进容器。</span>
+              <span>多个根目录用英文分号 ; 分隔。程序会在根目录下自动创建子目录；Docker 部署需先把新磁盘目录映射进容器,必须是挂载目录，桌面版用实际目录。</span>
             </div>
           </div>
           <div class="storage-setting">
@@ -442,10 +442,11 @@ const formState: UnwrapRef<FormState> = reactive({
   ActiveSeriesStorageRootIndex: 0,
 });
 
-const expansionRoots = computed(() => formState.StorageExpansionRootsText
-  .split(';')
-  .map((path) => path.trim())
-  .filter((path) => path.length > 0));
+const expansionRoots = computed(() =>
+  formState.StorageExpansionRootsText.split(';')
+    .map((path) => path.trim())
+    .filter((path) => path.length > 0)
+);
 
 // 实时计算完整模板
 const computeFullTemplate = computed(() => {
@@ -522,8 +523,11 @@ const getConfig = () => {
           CloseNfo: res.data.closeNfo,
           SkipFileExistenceCheck: res.data.skipFileExistenceCheck || false,
           StorageExpansionRootsText: (() => {
-            try { return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('; '); }
-            catch { return ''; }
+            try {
+              return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('; ');
+            } catch {
+              return '';
+            }
           })(),
           StorageMinFreeSpaceGb: res.data.storageMinFreeSpaceGb ?? 10,
           ActiveCollectStorageRootIndex: res.data.activeCollectStorageRootIndex || 0,

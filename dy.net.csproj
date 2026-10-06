@@ -58,11 +58,6 @@
   </ItemGroup>
 
 
-  <ItemGroup>
-    <Content Include="db\database.json" />
-  </ItemGroup>
-
-
 	<ItemGroup>
 	  <PackageReference Include="ClockSnowFlake" Version="1.1.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.16" />
@@ -111,6 +106,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="db\" />
     <Folder Include="wwwroot\" />
   </ItemGroup>
 
