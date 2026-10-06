@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 namespace dy.net.service
 {
     /// <summary>
-    /// Resolves the active database before DI is built and persists a successful migration.
+    /// Resolves the active database before DI is built and persists its selection.
     /// The separate file avoids rewriting a deployment-owned appsettings.json.
     /// </summary>
     public class DatabaseConfigurationService

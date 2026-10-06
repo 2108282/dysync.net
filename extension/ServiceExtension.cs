@@ -315,6 +315,14 @@ namespace dy.net.extension
                 var videoStatisticsService = scope.ServiceProvider
                     .GetRequiredService<DouyinVideoStatisticsService>();
                 await videoStatisticsService.EnsureInitializedAsync();
+                // Save Compose-selected settings only after the database initialized
+                // successfully, so they remain available as the migration source if
+                // the Compose overrides are temporarily removed later.
+                if (databaseConfiguration.HasDockerDatabaseOverride)
+                {
+                    databaseConfiguration.Save(databaseSettings);
+                }
+
                 Volatile.Write(ref _databaseInitialized, 1);
                 Log.Information("数据库初始化和 CodeFirst 执行完成");
             }
