@@ -136,7 +136,7 @@ services:
     restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
       - "10101:10101" 
-    # 可选：Intel 核显硬件编码。仅当宿主机存在 /dev/dri 时取消注释。
+    # 可选：Intel/AMD Linux 硬件编码（VAAPI）。宿主机需安装对应驱动，存在 /dev/dri 时取消注释。
     # devices:
     #   - /dev/dri:/dev/dri
     environment:

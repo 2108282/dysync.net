@@ -12,7 +12,7 @@ RUN printf '%s\n' \
       "deb https://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" \
       > /etc/apt/sources.list && \
     apt-get -o Acquire::Retries=5 update && \
-    apt-get -o Acquire::Retries=5 install -y --no-install-recommends ffmpeg intel-media-va-driver-non-free vainfo && \
+    apt-get -o Acquire::Retries=5 install -y --no-install-recommends ffmpeg intel-media-va-driver-non-free mesa-va-drivers vainfo && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ffmpeg -version

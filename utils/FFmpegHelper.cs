@@ -11,7 +11,9 @@ namespace dy.net.utils
     {
         None,
         Nvenc,
-        Qsv
+        Qsv,
+        Amf,
+        Vaapi
     }
 
     public class FFmpegHelper : IDisposable
@@ -21,6 +23,7 @@ namespace dy.net.utils
 
         // ===== 新增：硬件加速状态 =====
         private HardwareAccelerationType _hwAccelType = HardwareAccelerationType.None;
+        private string _vaapiDevicePath;
         public bool UseHardwareAcceleration { get; set; } = true;
 
         public FFmpegHelper()
@@ -56,7 +59,7 @@ namespace dy.net.utils
         }
 
         // ===== 新增：检测可用的硬件加速编码器（实测版，避免"能列出但用不了"） =====
-        // 优先级：QSV > NVENC > 软件编码
+        // 优先级：QSV > NVENC > AMD AMF > VAAPI > 软件编码
         private void DetectHardwareAcceleration()
         {
             if (!UseHardwareAcceleration)
@@ -81,21 +84,48 @@ namespace dy.net.utils
                 return;
             }
 
+            // Windows 通常通过 AMF 使用 AMD 硬件编码器。
+            if (TryEncodeWith("h264_amf", new[] { "-quality", "balanced", "-rc", "cqp", "-qp_i", "23", "-qp_p", "23" }))
+            {
+                _hwAccelType = HardwareAccelerationType.Amf;
+                Log.Debug("硬件加速：已启用 AMD h264_amf");
+                return;
+            }
+
+            // Linux / Docker 使用 VAAPI；AMD GPU 通过宿主机 amdgpu 驱动暴露 /dev/dri。
+            if (OperatingSystem.IsLinux())
+            {
+                var vaapiDevice = GetVaapiDevicePath();
+                if (vaapiDevice != null && TryEncodeWith(
+                    "h264_vaapi",
+                    new[] { "-qp", "23" },
+                    new[] { "-vaapi_device", vaapiDevice },
+                    "format=nv12,hwupload"))
+                {
+                    _hwAccelType = HardwareAccelerationType.Vaapi;
+                    _vaapiDevicePath = vaapiDevice;
+                    Log.Debug("硬件加速：已启用 VAAPI（AMD/Intel，设备 {Device}）", vaapiDevice);
+                    return;
+                }
+            }
+
             _hwAccelType = HardwareAccelerationType.None;
-            Log.Debug("硬件加速：未检测到可用编码器，回退到软件编码 libx264");
+            Log.Debug("硬件加速：未检测到可用编码器（QSV/NVENC/AMF/VAAPI），回退到软件编码");
         }
 
         // ===== 新增：真实运行一次 1 秒 256x256 的编码测试 =====
-        private bool TryEncodeWith(string encoder, string[] extraArgs)
+        private bool TryEncodeWith(string encoder, string[] extraArgs, string[] beforeInputArgs = null, string videoFilter = null)
         {
             try
             {
                 var args = new List<string>
                 {
-                    "-hide_banner", "-loglevel", "error",
-                    "-f", "lavfi", "-i", "color=red:s=256x256:d=1",
-                    "-c:v", encoder
+                    "-hide_banner", "-loglevel", "error"
                 };
+                if (beforeInputArgs != null) args.AddRange(beforeInputArgs);
+                args.AddRange(new[] { "-f", "lavfi", "-i", "color=red:s=256x256:d=1" });
+                if (!string.IsNullOrWhiteSpace(videoFilter)) args.AddRange(new[] { "-vf", videoFilter });
+                args.AddRange(new[] { "-c:v", encoder });
                 args.AddRange(extraArgs);
                 args.AddRange(new[] { "-f", "null", "-" });
 
@@ -134,6 +164,23 @@ namespace dy.net.utils
             }
         }
 
+        private static string GetVaapiDevicePath()
+        {
+            try
+            {
+                const string driDirectory = "/dev/dri";
+                if (!Directory.Exists(driDirectory)) return null;
+                return Directory.GetFiles(driDirectory, "renderD*")
+                    .OrderBy(path => path, StringComparer.Ordinal)
+                    .FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                Log.Debug("查找 VAAPI render device 失败：{Message}", ex.Message);
+                return null;
+            }
+        }
+
         // ===== 新增：根据硬件加速类型向参数列表追加视频编码参数 =====
         private void AppendVideoEncoderArgs(List<string> arguments)
         {
@@ -159,6 +206,28 @@ namespace dy.net.utils
                     });
                     break;
 
+                case HardwareAccelerationType.Amf:
+                    arguments.AddRange(new[]
+                    {
+                        "-c:v", "h264_amf",
+                        "-quality", "balanced",
+                        "-rc", "cqp",
+                        "-qp_i", VideoCrf.ToString(CultureInfo.InvariantCulture),
+                        "-qp_p", VideoCrf.ToString(CultureInfo.InvariantCulture)
+                    });
+                    break;
+
+                case HardwareAccelerationType.Vaapi:
+                    if (!string.IsNullOrWhiteSpace(_vaapiDevicePath))
+                        arguments.InsertRange(1, new[] { "-vaapi_device", _vaapiDevicePath });
+                    arguments.AddRange(new[]
+                    {
+                        "-c:v", "h264_vaapi",
+                        "-qp", VideoCrf.ToString(CultureInfo.InvariantCulture)
+                    });
+                    AppendVaapiUploadFilter(arguments);
+                    break;
+
                 default:
                     // 未检测到硬件加速，保持原有软件编码参数
                     arguments.AddRange(new[]
@@ -169,6 +238,34 @@ namespace dy.net.utils
                     });
                     break;
             }
+        }
+
+        private static void AppendVaapiUploadFilter(List<string> arguments)
+        {
+            var videoFilterIndex = arguments.FindLastIndex(arg => arg == "-vf");
+            if (videoFilterIndex >= 0 && videoFilterIndex + 1 < arguments.Count)
+            {
+                arguments[videoFilterIndex + 1] += ",format=nv12,hwupload";
+                return;
+            }
+
+            var complexFilterIndex = arguments.FindLastIndex(arg => arg == "-filter_complex");
+            if (complexFilterIndex >= 0 && complexFilterIndex + 1 < arguments.Count)
+            {
+                var graph = arguments[complexFilterIndex + 1];
+                var outputLabelIndex = graph.LastIndexOf("[v]", StringComparison.Ordinal);
+                if (outputLabelIndex >= 0)
+                {
+                    arguments[complexFilterIndex + 1] = graph.Insert(outputLabelIndex, ",format=nv12,hwupload");
+                }
+            }
+        }
+
+        private void AppendOutputPixelFormat(List<string> arguments)
+        {
+            // VAAPI 输出使用硬件帧，不应再强制指定软件 yuv420p。
+            if (_hwAccelType != HardwareAccelerationType.Vaapi)
+                arguments.InsertRange(arguments.Count - 1, new[] { "-pix_fmt", "yuv420p" });
         }
 
         private Process _ffmpegProcess;
@@ -586,7 +683,6 @@ namespace dy.net.utils
                 {
                     // ===== 改动点 F：删掉 -s，图片已是目标尺寸 =====
                     // "-s", $"{VideoWidth}x{VideoHeight}",
-                    "-pix_fmt", "yuv420p",
                     "-profile:v", "main",
 
                     // 音频编码参数
@@ -605,6 +701,7 @@ namespace dy.net.utils
                     // 输出路径
                     outputVideoPath
                 });
+                AppendOutputPixelFormat(arguments);
 
                 // 执行FFmpeg命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
@@ -691,7 +788,6 @@ namespace dy.net.utils
 
             arguments.AddRange(new[]
             {
-                "-pix_fmt", "yuv420p",
                 "-profile:v", "main",
                 // 关键帧计算也适配动态目标宽，保留原有逻辑
                 "-g", $"{(targetWidth < 1080 ? 60 : 120)}",
@@ -705,6 +801,7 @@ namespace dy.net.utils
                 "-movflags", "+faststart",
                 tempVideoPath
             });
+            AppendOutputPixelFormat(arguments);
 
             try
             {
@@ -896,8 +993,9 @@ namespace dy.net.utils
                 // 后续编码参数、执行逻辑均不变（使用基准分辨率）
                 arguments.AddRange(new[]
                 {
-            "-pix_fmt", "yuv420p", "-profile:v", "main"
+            "-profile:v", "main"
         });
+                AppendOutputPixelFormat(arguments);
 
                 arguments.AddRange(new[]
                 {
