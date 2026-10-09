@@ -114,8 +114,8 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 | 镜像标签     | 架构           |
 | ------------ | -------------- |
-| `beta_2.2.6` | x86_64 (amd64) |
-| `arm_2.2.6`  | ARM64          |
+| `beta_2.2.8` | x86_64 (amd64) |
+| `arm_2.2.8`  | ARM64          |
 
 ### 构建命令示例
 
@@ -131,7 +131,7 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 services:
   dysync:
-    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.6
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.2.8
     container_name: dysync2026  # 容器名称
     restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
     ports:
@@ -156,6 +156,7 @@ services:
       - DB_PASSWORD=111
     volumes:
       # 基础路径映射
+      #- /vol3/1000/media:/app2 #扩展目录，如果有多个，可以继续添加 /app3;/app4 名字自定义，只要在配置里面填写与之对应的就行
       - /vol2/1000/media/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
       # 默认音频目录（用于图文/动态视频合成，版权受限音频的替代）
       - /vol2/1000/media/dysync/mp3:/app/mp3         
