@@ -53,6 +53,8 @@
 
 - **0.2.9**：鏂板纾佺洏鐩綍鎵╁睍鍔熻兘锛屾敮鎸佽缃涓瓨鍌ㄧ洰褰曪紝閬垮厤纾佺洏绌洪棿鐢ㄥ畬鍚庯紝淇敼鏂扮洰褰曞鑷村叏閮ㄩ噸鏂颁笅杞界殑闂锛涘鍔犳枃浠跺瓨鍦ㄦ鏌ワ紝宸插垹闄ゆ垨杞Щ鏂囦欢锛屽彧瑕佹暟鎹簱璁板綍娌″垹闄わ紝鍙互涓嶅啀涓嬭浇锛屼絾鏄悓姝ヨ褰曟挱鏀惧皢浼氬け鏁?
 
+- **0.3.0**：FFmpeg AMD鏀寔
+
 ## 1. 获取抖音关键信息（必做！同步核心凭证）
 
 Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，避免遗漏或错误。
@@ -131,7 +133,7 @@ FN 桌面版不使用 Docker 挂载：扩展存储根目录直接填写设备上
 | x86_64 / amd64 | `ccr.ccs.tencentyun.com/jianzhichu/dysync`     |
 | ARM64          | `ccr.ccs.tencentyun.com/jianzhichu/dysync_arm` |
 
-以下 Compose 示例使用 `latest` 标签。发布脚本 `dysync-publish/publish-config.cmd` 中的 `DOCKER_VERSION` 可以设置为 `latest` 或具体版本号；x86 和 ARM 会使用相同标签，推送到各自的镜像仓库。
+以下 Compose 示例使用 `latest` 标签。
 
 ### Docker Compose 运行（推荐）
 
