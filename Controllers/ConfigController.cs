@@ -488,6 +488,37 @@ namespace dy.net.Controllers
             return ApiResult.Success(new { tag, deploy });
         }
 
+        /// <summary>列出 Docker Compose 中挂载到容器、且挂载目录名以 dyapp_ 开头的扩展存储根目录。</summary>
+        [HttpGet("storage/expansion-roots")]
+        public IActionResult GetDockerStorageExpansionRoots()
+        {
+            var roots = new SortedSet<string>(StringComparer.Ordinal);
+            if (!string.Equals(Appsettings.Get("deploy"), "fn", StringComparison.OrdinalIgnoreCase)
+                && OperatingSystem.IsLinux()
+                && System.IO.File.Exists("/proc/self/mountinfo"))
+            {
+                foreach (var line in System.IO.File.ReadLines("/proc/self/mountinfo"))
+                {
+                    var fields = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (fields.Length < 5) continue;
+
+                    var mountPath = fields[4]
+                        .Replace("\\040", " ")
+                        .Replace("\\011", "\t")
+                        .Replace("\\012", "\n")
+                        .Replace("\\134", "\\");
+                    var directoryName = Path.GetFileName(mountPath.TrimEnd(Path.DirectorySeparatorChar));
+                    if (directoryName.StartsWith("dyapp_", StringComparison.OrdinalIgnoreCase)
+                        && Directory.Exists(mountPath))
+                    {
+                        roots.Add(mountPath);
+                    }
+                }
+            }
+
+            return ApiResult.Success(roots.ToArray());
+        }
+
         [AllowAnonymous]
         [HttpGet("checktag")]
         public async Task<IActionResult> CheckTag()

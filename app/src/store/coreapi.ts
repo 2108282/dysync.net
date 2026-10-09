@@ -42,6 +42,11 @@ export const useApiStore = defineStore('coreapi', () => {
     });
   }
 
+  // 获取 Docker Compose 挂载的扩展存储根目录。
+  async function apiGetDockerStorageExpansionRoots() {
+    return http.request<any, Response<string[]>>('/api/config/storage/expansion-roots', 'get');
+  }
+
   // //获取配置
   // async function apiGetConfig() {
   //   return http
@@ -717,6 +722,7 @@ export const useApiStore = defineStore('coreapi', () => {
     deleteCookie,
     UpdateConfig,
     apiGetConfig,
+    apiGetDockerStorageExpansionRoots,
     apiUpdateConfig,
     apiGetLogs,
     apiUserInfo,

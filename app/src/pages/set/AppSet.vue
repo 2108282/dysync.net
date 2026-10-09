@@ -224,10 +224,30 @@
         <div class="storage-root-settings-grid">
           <div class="storage-setting">
             <label class="storage-setting-label" for="storage-expansion-roots">扩展存储根目录</label>
-            <a-input id="storage-expansion-roots" v-model:value="formState.StorageExpansionRootsText" placeholder="多个根目录用英文分号 ; 隔开，例如 /app1;/app2 " />
+            <a-select
+              v-if="isDockerDeployment"
+              id="storage-expansion-roots"
+              v-model:value="selectedDockerExpansionRoots"
+              mode="multiple"
+              :loading="storageRootsLoading"
+              :disabled="componentDisabled"
+              :max-tag-count="'responsive'"
+              placeholder="请选择已在 Docker Compose 中挂载的扩展目录"
+              style="width: 100%"
+            >
+              <a-select-option v-for="path in dockerExpansionRoots" :key="path" :value="path">{{ path }}</a-select-option>
+            </a-select>
+            <a-input
+              v-else
+              id="storage-expansion-roots"
+              v-model:value="formState.StorageExpansionRootsText"
+              :disabled="componentDisabled"
+              placeholder="多个根目录用英文分号 ; 隔开，例如 D:\\DouyinStorage1; D:\\DouyinStorage2"
+            />
             <div class="storage-setting-help">
               <InfoCircleOutlined class="text-blue-400 mr-1 mt-0.5" />
-              <span>多个根目录用英文分号 ; 分隔。程序会在根目录下自动创建子目录；Docker 部署需先把新磁盘目录映射进容器,必须是挂载目录，桌面版用实际目录。</span>
+              <span v-if="isDockerDeployment">选项来自 Docker Compose 中已挂载且容器目录名以 dyapp_ 开头的目录。新增挂载后需重建容器。</span>
+              <span v-else>多个本机根目录用英文分号 ; 分隔，程序会在根目录下自动创建子目录。</span>
             </div>
           </div>
           <div class="storage-setting">
@@ -366,6 +386,10 @@ const template_options = [
 // 状态定义
 const componentDisabled = ref(true);
 const downImgVideo = ref(true);
+const isDockerDeployment = ref(false);
+const dockerExpansionRoots = ref<string[]>([]);
+const selectedDockerExpansionRoots = ref<string[]>([]);
+const storageRootsLoading = ref(false);
 
 // 新增：悬浮菜单相关状态
 const floatMenuVisible = ref(false);
@@ -442,11 +466,36 @@ const formState: UnwrapRef<FormState> = reactive({
   ActiveSeriesStorageRootIndex: 0,
 });
 
-const expansionRoots = computed(() =>
-  formState.StorageExpansionRootsText.split(';')
+const expansionRoots = computed(() => isDockerDeployment.value
+  ? selectedDockerExpansionRoots.value
+  : formState.StorageExpansionRootsText.split(';')
     .map((path) => path.trim())
-    .filter((path) => path.length > 0)
-);
+    .filter((path) => path.length > 0));
+
+const loadStorageDeploymentSettings = async () => {
+  const api = useApiStore();
+  try {
+    const cachedVersion = api.getCachedVer();
+    const version = cachedVersion?.code === 0 ? cachedVersion : await api.getVer(true);
+    isDockerDeployment.value = version?.code === 0 && version.data?.deploy !== 'fnos';
+
+    if (isDockerDeployment.value) {
+      storageRootsLoading.value = true;
+      const response = await api.apiGetDockerStorageExpansionRoots();
+      if (response.code === 0) {
+        dockerExpansionRoots.value = response.data || [];
+        selectedDockerExpansionRoots.value = selectedDockerExpansionRoots.value
+          .filter((path) => dockerExpansionRoots.value.includes(path));
+      } else {
+        message.error(response.message || '获取 Docker 扩展目录失败');
+      }
+    }
+  } catch (error) {
+    console.error('读取部署类型或 Docker 扩展目录失败:', error);
+  } finally {
+    storageRootsLoading.value = false;
+  }
+};
 
 // 实时计算完整模板
 const computeFullTemplate = computed(() => {
@@ -524,7 +573,12 @@ const getConfig = () => {
           SkipFileExistenceCheck: res.data.skipFileExistenceCheck || false,
           StorageExpansionRootsText: (() => {
             try {
-              return (JSON.parse(res.data.storageExpansionRoots || '[]') as string[]).join('; ');
+              const parsedRoots: unknown = JSON.parse(res.data.storageExpansionRoots || '[]');
+              const roots = Array.isArray(parsedRoots)
+                ? parsedRoots.filter((path): path is string => typeof path === 'string')
+                : [];
+              selectedDockerExpansionRoots.value = roots;
+              return roots.join('; ');
             } catch {
               return '';
             }
@@ -642,6 +696,7 @@ const closeAudioListModal = () => {
 };
 // 组件挂载时获取配置
 onMounted(async () => {
+  void loadStorageDeploymentSettings();
   getConfig();
   await nextTick();
   if (tagContainer.value) {
