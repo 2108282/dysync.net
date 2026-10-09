@@ -230,7 +230,6 @@
               v-model:value="selectedDockerExpansionRoots"
               mode="multiple"
               :loading="storageRootsLoading"
-              :disabled="componentDisabled"
               :max-tag-count="'responsive'"
               placeholder="请选择已在 Docker Compose 中挂载的扩展目录"
               style="width: 100%"
