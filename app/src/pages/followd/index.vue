@@ -63,7 +63,7 @@
                 <!-- 非关注小标记 -->
                 <span v-if="item.isNoFollowed" class="no-followed-badge">非关注</span>
                 <!-- 删除按钮（仅非关注项显示，放在名字+非关注后面）v-if="item.isNoFollowed"  -->
-                <a-button type="text" class="delete-btn" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除该非关注博主">
+                <a-button type="text" class="delete-btn" @click="(e) => { e.stopPropagation(); handleDeleteItem(item); }" :disabled="item.isSaving" title="删除博主">
                   <close-outlined />
                 </a-button>
               </div>
