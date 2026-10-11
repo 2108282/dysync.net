@@ -661,7 +661,7 @@ namespace dy.net.job
             }
             else
             {
-                Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]没有查询到已开启的对象");
+                Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]没有查询到需要同步的抖音授权账号");
             }
         }
 
@@ -676,7 +676,7 @@ namespace dy.net.job
                 var data = await FetchVideoData(cookie, cursor, followed, cate);
                 if (data == null || data.AwemeList == null || !data.AwemeList.Any())
                 {
-                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}][{cate?.Name}] 没有新的视频");
+                    Serilog.Log.Debug($"[{cookie.UserName}][{VideoType.GetDesc()}]-[{followed?.UperName ?? cate?.Name}] 没有发布新的视频");
                     break;
                 }
 
