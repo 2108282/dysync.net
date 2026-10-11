@@ -24,10 +24,25 @@ namespace dy.net.utils
         // ===== 新增：硬件加速状态 =====
         private HardwareAccelerationType _hwAccelType = HardwareAccelerationType.None;
         private string _vaapiDevicePath;
-        public bool UseHardwareAcceleration { get; set; } = true;
-
-        public FFmpegHelper()
+        private bool _useHardwareAcceleration = true;
+        public bool UseHardwareAcceleration
         {
+            get => _useHardwareAcceleration;
+            set
+            {
+                if (_useHardwareAcceleration == value) return;
+                _useHardwareAcceleration = value;
+                DetectHardwareAcceleration();
+            }
+        }
+
+        public FFmpegHelper() : this(true)
+        {
+        }
+
+        public FFmpegHelper(bool useHardwareAcceleration)
+        {
+            _useHardwareAcceleration = useHardwareAcceleration;
             if (Appsettings.Get("deploy") == "fn")
             {
                 _ffmpegExecutablePath = "/usr/bin/ffmpeg";
@@ -132,26 +147,34 @@ namespace dy.net.utils
                 var psi = new ProcessStartInfo
                 {
                     FileName = _ffmpegExecutablePath,
-                    RedirectStandardOutput = true,
+                    RedirectStandardOutput = false,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
                 foreach (var a in args) psi.ArgumentList.Add(a);
 
-                using (var p = Process.Start(psi))
+                using (var p = new Process { StartInfo = psi })
                 {
-                    if (p == null) return false;
-                    string err = p.StandardError.ReadToEnd();
+                    var errorBuilder = new StringBuilder();
+                    p.ErrorDataReceived += (_, e) =>
+                    {
+                        if (!string.IsNullOrEmpty(e.Data)) errorBuilder.AppendLine(e.Data);
+                    };
+                    if (!p.Start()) return false;
+                    p.BeginErrorReadLine();
 
                     // ===== 改动点 A：加 5 秒超时，避免探测卡死导致构造函数永久阻塞 =====
                     if (!p.WaitForExit(5000))
                     {
                         try { p.Kill(entireProcessTree: true); } catch { }
+                        p.WaitForExit();
                         //Log.Debug($"硬件编码器 {encoder} 探测超时（5秒）");
                         return false;
                     }
 
+                    p.WaitForExit(); // Drain asynchronous stderr callbacks.
+                    string err = errorBuilder.ToString();
                     if (p.ExitCode == 0) return true;
                     //Log.Debug($"硬件编码器 {encoder} 探测失败（退出码 {p.ExitCode}）：{err.Trim()}");
                     return false;
@@ -618,7 +641,6 @@ namespace dy.net.utils
                 "-profile:v", "main",
                 // 关键帧计算也适配动态目标宽，保留原有逻辑
                 "-g", $"{(targetWidth < 1080 ? 60 : 120)}",
-                "-sc_threshold", "0",
                 "-c:a", AudioCodec,
                 "-b:a", AudioBitrate,
                 "-ac", "2",
