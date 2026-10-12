@@ -1423,15 +1423,13 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile {
-    display: grid;
-    grid-template-columns: 72px minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    display: flex;
     align-items: center;
-    column-gap: 12px;
-    row-gap: 10px;
+    flex-direction: column;
+    gap: 10px;
     min-height: 0;
     margin-bottom: 20px;
-    padding: 20px 14px 16px 56px;
+    padding: 48px 18px 18px;
     border-radius: 16px;
   }
 
@@ -1444,31 +1442,34 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile-avatar {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    width: 72px;
-    height: 72px;
+    order: 0;
+    width: 82px;
+    height: 82px;
   }
 
   .standalone.profile-view .md-profile-main {
-    grid-column: 2;
-    grid-row: 1;
+    order: 1;
     width: 100%;
+    flex: 0 0 auto;
+    text-align: center;
   }
 
   .standalone.profile-view .md-profile-main h1 {
     font-size: 18px;
     line-height: 1.3;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .standalone.profile-view .md-profile-signature {
-    max-width: 100%;
-    margin: 5px 0 8px;
+    max-width: 420px;
+    margin: 6px auto 9px;
     font-size: 12px;
     -webkit-line-clamp: 2;
   }
 
   .standalone.profile-view .md-profile-stats {
+    justify-content: center;
     gap: 5px;
     margin-top: 0;
     font-size: 11px;
@@ -1483,9 +1484,8 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile-shuffle {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
+    order: 2;
+    align-self: center;
     padding: 7px 12px;
     font-size: 12px;
   }
