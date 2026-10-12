@@ -416,8 +416,8 @@ watch(
   (id, previous) => {
     playerOpen.value = false;
     if (id) {
-      // 博主主页默认按发布时间倒序，和抖音一致
-      resetVideoFilters('publish');
+      // 博主主页默认按本地同步时间倒序
+      resetVideoFilters('latest');
       void loadProfile(id);
       void reloadVideos();
       nextTick(() => rootEl.value?.scrollIntoView({ block: 'start' }));
@@ -825,6 +825,9 @@ onBeforeUnmount(() => {
   }
 
   .md-profile-stats span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.25;
     padding: 5px 10px;
     border: 1px solid rgba(177, 200, 232, 0.12);
     border-radius: 999px;
@@ -1019,6 +1022,7 @@ onBeforeUnmount(() => {
 
 .md-profile-stats {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 4px 16px;
   margin: 6px 0 0;
@@ -1471,13 +1475,17 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile .md-profile-stats {
+    align-items: center;
     justify-content: flex-start;
     gap: 3px;
     margin-top: 0;
     font-size: 11px;
 
     span {
+      display: inline-flex;
+      align-items: center;
       padding: 3px 6px;
+      line-height: 1.25;
       white-space: nowrap;
     }
 
