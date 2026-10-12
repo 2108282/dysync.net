@@ -19,7 +19,6 @@
     - [1.1 提取`Cookie`以及 `sec_uer_id`](#11-提取cookie以及-sec_uer_id)
     - [1.2 提取 博主的`sec_user_id`以及博主的uid](#12-提取-博主的sec_user_id以及博主的uid)
     - [1.3 扫码获取 Cookie（可选）](#13-扫码获取-cookie可选)
-  - [](#)
   - [2. Docker 路径映射与扩展存储](#2-docker-路径映射与扩展存储)
     - [默认数据目录](#默认数据目录)
     - [扩展存储目录](#扩展存储目录)
@@ -68,31 +67,13 @@ Cookie 及 `sec_user_id` 是同步功能的核心，需严格按步骤获取，�
 
 ### 1.3 扫码获取 Cookie（可选）
 
-不想按 F12 抓包时，可以在 `DY授权` 页的新增/编辑窗口里点 **扫码获取**：用抖音 App 扫描弹出的二维码并确认，`Cookie` 和 `secUserId` 会自动填入表单，再点确定保存即可。手动粘贴的方式照常可用。
+在 `DY授权` 页面对应账号的操作列点 **扫码更新**，用抖音 App 扫码后先预览获取到的 `Cookie`；确认更新后，系统会校验并直接更新所选账号。手动粘贴 Cookie 的方式仍可使用。
 
 抖音的二维码接口必须由真实浏览器发起，所以扫码功能需要一个 Chromium 内核的浏览器：
 
 - **Windows / 桌面环境运行**：自动使用本机已安装的 Chrome 或 Edge，无需配置。装在非默认位置时用 `QrBrowserPath` 指定可执行文件路径。
-- **Docker 运行**：镜像里不带浏览器，需要额外加一个浏览器容器，并通过环境变量 `QrBrowserUrl` 告诉本程序它的调试地址。在 `docker-compose.yml` 里追加：
+- **Docker 部署**：项目根目录的 `docker-compose.yml` 已包含扫码所需的 `dysync-chrome` 浏览器服务和 `QrBrowserUrl` 配置，直接使用该文件启动即可，无需再手动追加服务。
 
-```yaml
-services:
-  dysync:
-    # ...原有配置不变，只在 environment 里加一行
-    environment:
-      - QrBrowserUrl=http://127.0.0.1:9222
-
-  dysync-chrome:
-    image: chromedp/headless-shell:latest
-    container_name: dysync-chrome
-    restart: unless-stopped
-    # 与 dysync 共用网络，调试端口只在 dysync 容器内部可见，不要把 9222 映射到宿主机
-    network_mode: "service:dysync"
-    volumes:
-      # 浏览器容器自身没有中文字体，不挂载的话浏览器画面里的中文会显示成方块。
-      # 目录里放任意中文字体文件（.ttf/.otf/.ttc）即可，例如开源的 Noto Sans SC
-      - /vol2/1000/media/dysync/fonts:/usr/share/fonts/truetype/dysync:ro
-```
 
 扫码后需要身份验证时：
 
@@ -167,33 +148,26 @@ FN 桌面版不使用 Docker 挂载：扩展存储根目录直接填写设备上
 
 ### Docker Compose 运行（推荐）
 
-创建 `docker-compose.yml`，替换示例中的宿主机目录和数据库连接信息。x86 默认启用；ARM 设备请注释 x86 的 `image` 行并启用 ARM 行，然后执行 `docker compose up -d`。
+项目根目录已提供完整的 `docker-compose.yml`，包含应用和扫码浏览器服务。部署前请按实际环境修改 NAS 卷路径、数据库连接信息；ARM64 设备请切换到 ARM 镜像。确认配置后，在项目根目录执行：
 
 <span style="color: red; font-weight: bold;">需要注意：unraid玩家可能需要增加 user配置 --user 1000:100</span>
 
-```yaml
-
+```bash
 services:
   dysync:
     image: ccr.ccs.tencentyun.com/jianzhichu/dysync:latest
-    # ARM64 设备改用下面这一行：注释 x86 行，取消 ARM 行注释
+    # ARM64 设备：注释上面的 x86 镜像，改用下面这一行。
     # image: ccr.ccs.tencentyun.com/jianzhichu/dysync_arm:latest
-    container_name: dysync2026  # 容器名称
-    restart: unless-stopped     # 始终重启容器，除非容器被手动停止或Docker服务停止
+    container_name: dysync2026
+    restart: unless-stopped
     ports:
-      - "10101:10101" 
-    # 可选：Intel/AMD Linux 硬件编码（VAAPI）。宿主机需安装对应驱动，存在 /dev/dri 时取消注释。
-    # devices:
-      - /dev/dri:/dev/dri
+      - "10101:10101"
     environment:
-      # 不限制GC堆最大内存，由.NET运行时根据实际负载管理
-      # 禁用服务器GC，改用工作站GC（轻量应用更友好）
+      # 扫码登录用的 Chromium 调试地址；浏览器服务与本服务共享网络命名空间。
+      - QrBrowserUrl=http://127.0.0.1:9222
       - COMPlus_GCServer=0
-      # 强制GC回收后尽量释放内存给操作系统（Linux）
       - COMPlus_GCConserveMemory=1
-      # 可选：显示GC日志（排查内存问题时用）
-      # - COMPlus_GCLogFile=/app/gc.log
-      # 新增可选设置，启用后直接使用该数据连接进行数据库初始化，根据自己真实数据库地址填写
+      # 按实际数据库设置修改以下连接信息。
       - DB_TYPE=MySql
       - DB_HOST=192.168.2.11
       - DB_PORT=3306
@@ -201,35 +175,37 @@ services:
       - DB_USER=dysync
       - DB_PASSWORD=111
     volumes:
-      # 扩展存储目录示例：修改为实际宿主机路径后取消注释
-      # 容器路径最后一级使用 dyapp_ 前缀，系统配置页会自动发现
-      # - /volume2/video/dysync-extension-1:/app/dyapp_1
-      # - /volume3/video/dysync-extension-2:/app/dyapp_2
-      - /vol2/1000/media/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
-      # 默认音频目录（用于图文/动态视频合成，版权受限音频的替代）
-      - /vol2/1000/media/dysync/mp3:/app/mp3         
-      # 账号1 - 视频存储目录
-      - /vol2/1000/media/dysync/dy1/coll:/app/collect   # 个人收藏视频
-      - /vol2/1000/media/dysync/dy1/fav:/app/favorite   # 个人喜欢视频
-      - /vol2/1000/media/dysync/dy1/up:/app/uper        # 指定博主视频
-      - /vol2/1000/media/dysync/dy1/mix:/app/mix        # 合集（不需要可删除）
-      - /vol2/1000/media/dysync/dy1/series:/app/series  # 短剧（不需要可删除）
-      
-      # 账号2 - 多账号路径映射示例（可选：授权时可复用账号1路径）
-      - /vol2/1000/media/dysync/dy2/collect:/app/collect2 
-      - /vol2/1000/media/dysync/dy2/fav:/app/favorite2  
+      # NAS 上的持久化数据库、音频和媒体目录；按实际路径修改。
+      - /vol2/1000/media/dysync/db:/app/db
+      - /vol2/1000/media/dysync/mp3:/app/mp3
+      - /vol2/1000/media/dysync/dy1/coll:/app/collect
+      - /vol2/1000/media/dysync/dy1/fav:/app/favorite
+      - /vol2/1000/media/dysync/dy1/up:/app/uper
+      - /vol2/1000/media/dysync/dy1/mix:/app/mix
+      - /vol2/1000/media/dysync/dy1/series:/app/series
+      # 更多账号可照此增加路径映射，例如：
+      - /vol2/1000/media/dysync/dy2/collect:/app/collect2
+      - /vol2/1000/media/dysync/dy2/fav:/app/favorite2
       - /vol2/1000/media/dysync/dy2/up:/app/uper2
-
-      # 账号n....
-
     network_mode: bridge
     dns:
-      - 223.5.5.5  # 阿里云DNS（备用）
-      - 114.114.114.114  # 国内114 DNS（提升国内访问稳定性）
-    #deploy:
-    #  resources: 
-    #    limits:  
-    #      memory: 250m  # 限制内存占用≤250MB（图文视频下载场景不建议设置）
+      - 223.5.5.5
+      - 114.114.114.114
+    # 可选：Linux NAS 支持 VAAPI 且存在 /dev/dri 时启用硬件转码。
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+  dysync-chrome:
+    image: chromedp/headless-shell:latest
+    container_name: dysync-chrome
+    restart: unless-stopped
+    depends_on:
+      - dysync
+    # 只在 dysync 的容器网络内开放调试端口，不要映射到 NAS 主机。
+    network_mode: "service:dysync"
+    # 如需验证码画面显示中文，可挂载包含 .ttf/.otf/.ttc 的字体目录。
+    # volumes:
+    #   - /vol2/1000/media/dysync/fonts:/usr/share/fonts/truetype/dysync:ro
 
 ```
 

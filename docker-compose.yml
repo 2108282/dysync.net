@@ -1,0 +1,53 @@
+services:
+  dysync:
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:latest
+    # ARM64 设备：注释上面的 x86 镜像，改用下面这一行。
+    # image: ccr.ccs.tencentyun.com/jianzhichu/dysync_arm:latest
+    container_name: dysync2026
+    restart: unless-stopped
+    ports:
+      - "10101:10101"
+    environment:
+      # 扫码登录用的 Chromium 调试地址；浏览器服务与本服务共享网络命名空间。
+      - QrBrowserUrl=http://127.0.0.1:9222
+      - COMPlus_GCServer=0
+      - COMPlus_GCConserveMemory=1
+      # 按实际数据库设置修改以下连接信息。
+      - DB_TYPE=MySql
+      - DB_HOST=192.168.2.11
+      - DB_PORT=3306
+      - DB_NAME=dysync
+      - DB_USER=dysync
+      - DB_PASSWORD=111
+    volumes:
+      # NAS 上的持久化数据库、音频和媒体目录；按实际路径修改。
+      - /vol2/1000/media/dysync/db:/app/db
+      - /vol2/1000/media/dysync/mp3:/app/mp3
+      - /vol2/1000/media/dysync/dy1/coll:/app/collect
+      - /vol2/1000/media/dysync/dy1/fav:/app/favorite
+      - /vol2/1000/media/dysync/dy1/up:/app/uper
+      - /vol2/1000/media/dysync/dy1/mix:/app/mix
+      - /vol2/1000/media/dysync/dy1/series:/app/series
+      # 更多账号可照此增加路径映射，例如：
+      - /vol2/1000/media/dysync/dy2/collect:/app/collect2
+      - /vol2/1000/media/dysync/dy2/fav:/app/favorite2
+      - /vol2/1000/media/dysync/dy2/up:/app/uper2
+    network_mode: bridge
+    dns:
+      - 223.5.5.5
+      - 114.114.114.114
+    # 可选：Linux NAS 支持 VAAPI 且存在 /dev/dri 时启用硬件转码。
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+  dysync-chrome:
+    image: chromedp/headless-shell:latest
+    container_name: dysync-chrome
+    restart: unless-stopped
+    depends_on:
+      - dysync
+    # 只在 dysync 的容器网络内开放调试端口，不要映射到 NAS 主机。
+    network_mode: "service:dysync"
+    # 如需验证码画面显示中文，可挂载包含 .ttf/.otf/.ttc 的字体目录。
+    # volumes:
+    #   - /vol2/1000/media/dysync/fonts:/usr/share/fonts/truetype/dysync:ro

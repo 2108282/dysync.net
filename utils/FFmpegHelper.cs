@@ -844,8 +844,6 @@ namespace dy.net.utils
                 {
             "-profile:v", "main"
         });
-                AppendOutputPixelFormat(arguments);
-
                 arguments.AddRange(new[]
                 {
             "-c:a", AudioCodec, "-b:a", AudioBitrate,
@@ -856,6 +854,7 @@ namespace dy.net.utils
                 {
             "-f", "mp4", "-movflags", "+faststart", savePath
         });
+                AppendOutputPixelFormat(arguments);
 
                 // 执行FFmpeg命令
                 await ExecuteFFmpegAsync(arguments, progress, cancellationToken);
