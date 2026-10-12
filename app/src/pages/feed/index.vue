@@ -494,7 +494,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main ref="rootEl" class="my-douyin" :class="{ standalone }">
+  <main ref="rootEl" class="my-douyin" :class="{ standalone, 'profile-view': inProfile }">
     <!-- 博主主页的头部 -->
     <header v-if="inProfile" class="md-profile">
       <button type="button" class="md-profile-back" aria-label="返回博主列表" @click="goBack">
@@ -635,23 +635,42 @@ onBeforeUnmount(() => {
 
     <!-- ===== 视频封面墙：全部视频，或某位博主的视频 ===== -->
     <template v-else>
-      <nav v-if="typeTabs.length > 0" class="md-types" aria-label="视频分类">
-        <button v-for="tab in typeTabs" :key="tab.key" type="button" class="md-type" :class="{ active: activeType === tab.key }" @click="selectType(tab.key)">
-          {{ tab.label }} <span>{{ tab.count }}</span>
-        </button>
-      </nav>
-
-      <div class="md-toolbar">
-        <div class="md-orders" role="group" aria-label="排序方式">
-          <button v-for="item in VIDEO_ORDERS" :key="item.key" type="button" class="md-order" :class="{ active: order === item.key }" @click="selectVideoOrder(item.key)">
-            {{ item.label }}
+      <div v-if="inProfile" class="md-profile-toolbar">
+        <nav v-if="typeTabs.length > 0" class="md-types" aria-label="视频分类">
+          <button v-for="tab in typeTabs" :key="tab.key" type="button" class="md-type" :class="{ active: activeType === tab.key }" @click="selectType(tab.key)">
+            {{ tab.label }} <span>{{ tab.count }}</span>
           </button>
+        </nav>
+        <div class="md-profile-toolbar-side">
+          <div class="md-orders" role="group" aria-label="排序方式">
+            <button v-for="item in VIDEO_ORDERS" :key="item.key" type="button" class="md-order" :class="{ active: order === item.key }" @click="selectVideoOrder(item.key)">
+              {{ item.label }}
+            </button>
+          </div>
+          <label class="md-search">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input v-model="keywordInput" type="search" placeholder="搜索这位博主的视频" autocomplete="off" />
+          </label>
         </div>
-        <label class="md-search">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-          <input v-model="keywordInput" type="search" :placeholder="inProfile ? '搜索这位博主的视频' : '搜索标题或博主'" autocomplete="off" />
-        </label>
       </div>
+      <template v-else>
+        <nav v-if="typeTabs.length > 0" class="md-types" aria-label="视频分类">
+          <button v-for="tab in typeTabs" :key="tab.key" type="button" class="md-type" :class="{ active: activeType === tab.key }" @click="selectType(tab.key)">
+            {{ tab.label }} <span>{{ tab.count }}</span>
+          </button>
+        </nav>
+        <div class="md-toolbar">
+          <div class="md-orders" role="group" aria-label="排序方式">
+            <button v-for="item in VIDEO_ORDERS" :key="item.key" type="button" class="md-order" :class="{ active: order === item.key }" @click="selectVideoOrder(item.key)">
+              {{ item.label }}
+            </button>
+          </div>
+          <label class="md-search">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input v-model="keywordInput" type="search" placeholder="搜索标题或博主" autocomplete="off" />
+          </label>
+        </div>
+      </template>
 
       <section class="md-grid" aria-label="视频列表">
         <article
@@ -726,6 +745,189 @@ onBeforeUnmount(() => {
   &.standalone {
     min-height: 100%;
     border-radius: 0;
+  }
+}
+
+.my-douyin.standalone.profile-view {
+  padding: 28px clamp(16px, 4vw, 64px) 56px;
+  color: #edf3fc;
+  background: radial-gradient(ellipse at 15% 0%, rgba(48, 104, 177, 0.2), transparent 36%),
+    linear-gradient(145deg, #0c1421, #111b2b 55%, #0b1320);
+}
+
+.standalone.profile-view .md-profile,
+.standalone.profile-view .md-profile-toolbar,
+.standalone.profile-view .md-grid,
+.standalone.profile-view > .md-state,
+.standalone.profile-view > .md-load-more {
+  max-width: 1600px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.standalone.profile-view .md-profile {
+  position: relative;
+  min-height: 188px;
+  margin-bottom: 28px;
+  padding: 26px clamp(20px, 4vw, 48px);
+  overflow: hidden;
+  border: 1px solid rgba(180, 203, 235, 0.14);
+  border-radius: 20px;
+  background: linear-gradient(112deg, rgba(25, 42, 64, 0.98), rgba(18, 30, 47, 0.88));
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.18);
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: 0;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    content: '';
+    pointer-events: none;
+  }
+
+  &::before {
+    top: -190px;
+    right: 12%;
+    background: rgba(68, 134, 226, 0.22);
+  }
+
+  &::after {
+    right: -120px;
+    bottom: -220px;
+    background: rgba(146, 88, 201, 0.16);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .md-profile-avatar {
+    width: 112px;
+    height: 112px;
+    border-color: rgba(210, 226, 252, 0.62);
+    box-shadow: 0 8px 28px rgba(4, 10, 20, 0.35);
+  }
+
+  .md-profile-main h1 {
+    font-size: clamp(23px, 3vw, 32px);
+    letter-spacing: 0.01em;
+  }
+
+  .md-profile-signature {
+    max-width: min(780px, 75vw);
+    margin: 10px 0 14px;
+    color: #aebed2;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .md-profile-stats span {
+    padding: 5px 10px;
+    border: 1px solid rgba(177, 200, 232, 0.12);
+    border-radius: 999px;
+    color: #c5d3e5;
+    background: rgba(7, 15, 26, 0.24);
+  }
+}
+
+.standalone.profile-view .md-profile-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.standalone.profile-view .md-types {
+  padding: 0;
+}
+
+.standalone.profile-view .md-type {
+  min-height: 36px;
+  border: 1px solid rgba(180, 203, 235, 0.13);
+  background: rgba(255, 255, 255, 0.035);
+
+  &.active {
+    border-color: rgba(102, 170, 255, 0.5);
+    color: #edf5ff;
+    background: rgba(65, 132, 211, 0.2);
+  }
+}
+
+.md-profile-toolbar-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 0;
+
+  .md-search {
+    width: min(330px, 34vw);
+    min-height: 38px;
+    flex: 0 1 330px;
+    border: 1px solid rgba(180, 203, 235, 0.15);
+    background: rgba(5, 13, 24, 0.34);
+  }
+}
+
+.standalone.profile-view .md-grid {
+  grid-template-columns: repeat(auto-fill, minmax(178px, 1fr));
+  gap: 20px;
+}
+
+.standalone.profile-view .md-card {
+  display: flex;
+  aspect-ratio: auto;
+  flex-direction: column;
+  border: 1px solid rgba(180, 203, 235, 0.12);
+  border-radius: 15px;
+  background: #172438;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  > img {
+    display: block;
+    height: auto;
+    flex: 0 0 auto;
+    aspect-ratio: 3 / 4;
+  }
+
+  .md-card-placeholder {
+    height: auto;
+    flex: 0 0 auto;
+    aspect-ratio: 3 / 4;
+    padding: 0;
+  }
+
+  .md-card-copy {
+    position: static;
+    padding: 12px 14px 14px;
+    background: #172438;
+
+    p {
+      display: -webkit-box;
+      min-height: 2.8em;
+      font-size: 13px;
+      line-height: 1.4;
+      -webkit-line-clamp: 2;
+    }
+  }
+
+  .md-card-badge {
+    top: 9px;
+    right: 9px;
+    left: auto;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 7px;
+    background: rgba(6, 13, 23, 0.68);
+    backdrop-filter: blur(8px);
   }
 }
 
@@ -1214,6 +1416,59 @@ onBeforeUnmount(() => {
 @media (max-width: 640px) {
   .my-douyin {
     padding: 12px 6px 32px;
+  }
+
+  .my-douyin.standalone.profile-view {
+    padding: 14px 12px 36px;
+  }
+
+  .standalone.profile-view .md-profile {
+    min-height: 156px;
+    margin-bottom: 20px;
+    gap: 10px;
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .standalone.profile-view .md-profile-avatar {
+    width: 76px;
+    height: 76px;
+  }
+
+  .standalone.profile-view .md-profile-main h1 {
+    font-size: 20px;
+  }
+
+  .standalone.profile-view .md-profile-signature {
+    max-width: 100%;
+    margin: 7px 0 10px;
+    font-size: 12px;
+  }
+
+  .standalone.profile-view .md-profile-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 14px;
+  }
+
+  .standalone.profile-view .md-profile-toolbar-side {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .standalone.profile-view .md-profile-toolbar-side .md-search {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+
+  .standalone.profile-view .md-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .standalone.profile-view .md-card {
+    border-radius: 10px;
   }
 
   .md-profile {
