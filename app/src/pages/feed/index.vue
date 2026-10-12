@@ -1424,14 +1424,12 @@ onBeforeUnmount(() => {
 
   .standalone.profile-view .md-profile {
     display: grid;
-    grid-template-columns: 58px minmax(0, 1fr);
-    grid-template-rows: auto auto;
+    grid-template-columns: 54px minmax(0, 1fr);
     align-items: center;
     column-gap: 10px;
-    row-gap: 6px;
     min-height: 0;
     margin-bottom: 14px;
-    padding: 16px 14px 14px 52px;
+    padding: 15px 14px 42px 52px;
     border-radius: 14px;
   }
 
@@ -1443,54 +1441,56 @@ onBeforeUnmount(() => {
     height: 30px;
   }
 
-  .standalone.profile-view .md-profile-avatar {
+  .standalone.profile-view .md-profile .md-profile-avatar {
     grid-column: 1;
-    grid-row: 1 / span 2;
-    width: 58px;
-    height: 58px;
+    grid-row: 1;
+    width: 54px;
+    height: 54px;
   }
 
   .standalone.profile-view .md-profile-main {
     grid-column: 2;
     grid-row: 1;
     width: 100%;
+    padding-bottom: 2px;
     text-align: left;
   }
 
-  .standalone.profile-view .md-profile-main h1 {
+  .standalone.profile-view .md-profile .md-profile-main h1 {
     font-size: 16px;
     line-height: 1.25;
     white-space: nowrap;
   }
 
-  .standalone.profile-view .md-profile-signature {
+  .standalone.profile-view .md-profile .md-profile-signature {
     max-width: 420px;
     margin: 3px 0 5px;
     font-size: 11px;
     -webkit-line-clamp: 1;
   }
 
-  .standalone.profile-view .md-profile-stats {
+  .standalone.profile-view .md-profile .md-profile-stats {
     justify-content: flex-start;
-    gap: 4px;
+    gap: 3px;
     margin-top: 0;
-    font-size: 10px;
+    font-size: 9px;
 
     span {
-      padding: 3px 6px;
+      padding: 2px 5px;
+      white-space: nowrap;
     }
 
     strong {
-      font-size: 11px;
+      font-size: 10px;
     }
   }
 
   .standalone.profile-view .md-profile-shuffle {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: start;
-    padding: 5px 10px;
-    font-size: 11px;
+    position: absolute;
+    right: 12px;
+    bottom: 9px;
+    padding: 5px 9px;
+    font-size: 10px;
   }
 
   .standalone.profile-view .md-profile-toolbar {
