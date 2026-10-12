@@ -548,7 +548,7 @@ async function loadAuthors(reset = false) {
 
 function openAuthorFeed(author: Author) {
   const href = router.resolve({
-    path: '/douyin',
+    path: '/me',
     query: {
       author: author.uperId || undefined,
       name: author.name,
