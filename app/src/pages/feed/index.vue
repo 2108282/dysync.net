@@ -1423,25 +1423,70 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile {
-    min-height: 156px;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 10px;
+    min-height: 0;
     margin-bottom: 20px;
-    gap: 10px;
-    padding: 20px 16px;
+    padding: 20px 14px 16px 56px;
     border-radius: 16px;
   }
 
+  .standalone.profile-view .md-profile-back {
+    position: absolute;
+    top: 14px;
+    left: 12px;
+    width: 34px;
+    height: 34px;
+  }
+
   .standalone.profile-view .md-profile-avatar {
-    width: 76px;
-    height: 76px;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 72px;
+    height: 72px;
+  }
+
+  .standalone.profile-view .md-profile-main {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
   }
 
   .standalone.profile-view .md-profile-main h1 {
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.3;
   }
 
   .standalone.profile-view .md-profile-signature {
     max-width: 100%;
-    margin: 7px 0 10px;
+    margin: 5px 0 8px;
+    font-size: 12px;
+    -webkit-line-clamp: 2;
+  }
+
+  .standalone.profile-view .md-profile-stats {
+    gap: 5px;
+    margin-top: 0;
+    font-size: 11px;
+
+    span {
+      padding: 4px 7px;
+    }
+
+    strong {
+      font-size: 12px;
+    }
+  }
+
+  .standalone.profile-view .md-profile-shuffle {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    padding: 7px 12px;
     font-size: 12px;
   }
 
