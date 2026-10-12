@@ -106,6 +106,18 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@/pages/workplace/AuthorVideos.vue'),
       },
+      {
+        // 手机端的「我的抖音」：全屏独立页面
+        path: '/me',
+        name: 'me',
+        meta: {
+          renderMenu: false,
+          view: 'blank',
+          target: '_blank',
+          cacheable: false,
+        },
+        component: () => import('@/pages/feed/index.vue'),
+      },
       // {
       //   path: '/init',
       //   name: '初始化',
@@ -154,6 +166,18 @@ const routes: RouteRecordRaw[] = [
       cacheable: false,
     },
     component: () => import('@/pages/workplace/statics.vue'),
+  },
+  {
+    path: '/douyin',
+    name: '我的抖音',
+    meta: {
+      icon: 'PlayCircleOutlined',
+      view: 'self',
+      target: '_self',
+      renderMenu: false,
+      cacheable: false,
+    },
+    component: () => import('@/pages/feed/index.vue'),
   },
   {
     path: '/workplace',

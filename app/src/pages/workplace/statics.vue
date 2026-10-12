@@ -116,11 +116,11 @@
           <div class="authors-grid">
             <div class="author-card" v-for="author in authors" :key="`${author.uperId || ''}-${author.name}`" @dblclick="handleDeleteItem(author)">
               <div class="author-info-row">
-                <div class="author-avatar author-open-link" role="link" tabindex="0" @click.stop="openAuthorVideos(author)" @dblclick.stop @keydown.enter.stop="openAuthorVideos(author)">
+                <div class="author-avatar author-open-link" role="link" tabindex="0" @click.stop="openAuthorFeed(author)" @dblclick.stop @keydown.enter.stop="openAuthorFeed(author)">
                   <img :src="author.icon" alt="作者头像" />
                 </div>
                 <div class="author-info">
-                  <h3 class="author-name author-open-link" role="link" tabindex="0" @click.stop="openAuthorVideos(author)" @dblclick.stop @keydown.enter.stop="openAuthorVideos(author)">{{ author.name }}</h3>
+                  <h3 class="author-name author-open-link" role="link" tabindex="0" @click.stop="openAuthorFeed(author)" @dblclick.stop @keydown.enter.stop="openAuthorFeed(author)">{{ author.name }}</h3>
                   <p class="author-stats">同步数量: {{ author.count }}</p>
                 </div>
               </div>
@@ -546,13 +546,12 @@ async function loadAuthors(reset = false) {
   }
 }
 
-function openAuthorVideos(author: Author) {
+function openAuthorFeed(author: Author) {
   const href = router.resolve({
-    path: '/author-videos',
+    path: '/douyin',
     query: {
-      authorId: author.uperId || undefined,
-      authorName: author.name,
-      authorIcon: author.icon || undefined,
+      author: author.uperId || undefined,
+      name: author.name,
     },
   }).href;
   window.open(href, '_blank', 'noopener,noreferrer');
