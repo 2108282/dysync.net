@@ -1452,6 +1452,7 @@ onBeforeUnmount(() => {
     grid-column: 2;
     grid-row: 1;
     width: 100%;
+    padding-right: 88px;
     padding-bottom: 2px;
     text-align: left;
   }
@@ -1488,7 +1489,8 @@ onBeforeUnmount(() => {
   .standalone.profile-view .md-profile-shuffle {
     position: absolute;
     right: 12px;
-    bottom: 9px;
+    top: 12px;
+    bottom: auto;
     padding: 5px 9px;
     font-size: 10px;
   }
