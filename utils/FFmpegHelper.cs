@@ -24,6 +24,10 @@ namespace dy.net.utils
         // ===== 新增：硬件加速状态 =====
         private HardwareAccelerationType _hwAccelType = HardwareAccelerationType.None;
         private string _vaapiDevicePath;
+        private static readonly object HardwareAccelerationDetectionLock = new object();
+        private static bool _hardwareAccelerationDetectionCompleted;
+        private static HardwareAccelerationType _detectedHardwareAccelerationType = HardwareAccelerationType.None;
+        private static string _detectedVaapiDevicePath;
         private bool _useHardwareAcceleration = true;
         public bool UseHardwareAcceleration
         {
@@ -80,34 +84,54 @@ namespace dy.net.utils
             if (!UseHardwareAcceleration)
             {
                 _hwAccelType = HardwareAccelerationType.None;
+                _vaapiDevicePath = null;
                 return;
             }
 
-            // 优先探测 Intel QSV
+            lock (HardwareAccelerationDetectionLock)
+            {
+                if (_hardwareAccelerationDetectionCompleted)
+                {
+                    _hwAccelType = _detectedHardwareAccelerationType;
+                    _vaapiDevicePath = _detectedVaapiDevicePath;
+                    return;
+                }
+
+                ProbeHardwareAcceleration();
+                _detectedHardwareAccelerationType = _hwAccelType;
+                _detectedVaapiDevicePath = _vaapiDevicePath;
+                _hardwareAccelerationDetectionCompleted = true;
+            }
+        }
+
+        private void ProbeHardwareAcceleration()
+        {
+            // In Linux containers, do not probe encoders unless GPU device nodes are exposed.
+            if (OperatingSystem.IsLinux() && IsRunningInContainer() && !HasGpuDeviceExposed())
+            {
+                _hwAccelType = HardwareAccelerationType.None;
+                _vaapiDevicePath = null;
+                return;
+            }
+
             if (TryEncodeWith("h264_qsv", new[] { "-preset", "medium", "-global_quality", "23" }))
             {
                 _hwAccelType = HardwareAccelerationType.Qsv;
-                //Log.Debug("硬件加速：已启用 h264_qsv");
                 return;
             }
 
-            // QSV 不可用再尝试 NVIDIA NVENC
             if (TryEncodeWith("h264_nvenc", new[] { "-preset", "p4", "-rc", "vbr", "-cq", "23", "-b:v", "0" }))
             {
                 _hwAccelType = HardwareAccelerationType.Nvenc;
-                //Log.Debug("硬件加速：已启用 h264_nvenc");
                 return;
             }
 
-            // Windows 通常通过 AMF 使用 AMD 硬件编码器。
             if (TryEncodeWith("h264_amf", new[] { "-quality", "balanced", "-rc", "cqp", "-qp_i", "23", "-qp_p", "23" }))
             {
                 _hwAccelType = HardwareAccelerationType.Amf;
-                //Log.Debug("硬件加速：已启用 AMD h264_amf");
                 return;
             }
 
-            // Linux / Docker 使用 VAAPI；AMD GPU 通过宿主机 amdgpu 驱动暴露 /dev/dri。
             if (OperatingSystem.IsLinux())
             {
                 var vaapiDevice = GetVaapiDevicePath();
@@ -119,16 +143,43 @@ namespace dy.net.utils
                 {
                     _hwAccelType = HardwareAccelerationType.Vaapi;
                     _vaapiDevicePath = vaapiDevice;
-                    //Log.Debug("硬件加速：已启用 VAAPI（AMD/Intel，设备 {Device}）", vaapiDevice);
                     return;
                 }
             }
 
             _hwAccelType = HardwareAccelerationType.None;
-            //Log.Debug("硬件加速：未检测到可用编码器（QSV/NVENC/AMF/VAAPI），回退到软件编码");
+            _vaapiDevicePath = null;
         }
 
-        // ===== 新增：真实运行一次 1 秒 256x256 的编码测试 =====
+        private static bool IsRunningInContainer()
+        {
+            return string.Equals(
+                       Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+                       "true",
+                       StringComparison.OrdinalIgnoreCase)
+                   || File.Exists("/.dockerenv")
+                   || File.Exists("/run/.containerenv");
+        }
+
+        private static bool HasGpuDeviceExposed()
+        {
+            try
+            {
+                if (Directory.Exists("/dev/dri") && Directory.GetFiles("/dev/dri", "renderD*").Length > 0)
+                    return true;
+            }
+            catch (IOException)
+            {
+                // 设备目录不可读时按未暴露设备处理。
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // 设备目录不可读时按未暴露设备处理。
+            }
+
+            return File.Exists("/dev/nvidia0") && File.Exists("/dev/nvidiactl");
+        }
+
         private bool TryEncodeWith(string encoder, string[] extraArgs, string[] beforeInputArgs = null, string videoFilter = null)
         {
             try
@@ -322,6 +373,7 @@ namespace dy.net.utils
             int targetHeight,
             CancellationToken cancellationToken)
         {
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = _ffmpegExecutablePath,
@@ -378,6 +430,7 @@ namespace dy.net.utils
        IProgress<double> progress = null,
        CancellationToken cancellationToken = default)
         {
+            Log.Debug("硬件加速类型：" + _hwAccelType.ToString());
             // 输入验证
             if (imageFilePaths == null || !imageFilePaths.Any())
                 throw new ArgumentException("图片路径列表不能为空。", nameof(imageFilePaths));
