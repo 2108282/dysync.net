@@ -13,9 +13,12 @@ import {
   StopOutlined,
   ClockCircleOutlined,
   DeleteOutlined,
+  QrcodeOutlined,
 } from '@ant-design/icons-vue';
 import { useApiStore } from '@/store';
 import { message } from 'ant-design-vue';
+import QrLoginModal from './QrLoginModal.vue';
+import type { QrLoginResult } from './QrLoginModal.vue';
 
 import { StarOutlined, StarFilled, StarTwoTone } from '@ant-design/icons-vue';
 const columns = ref([]);
@@ -30,7 +33,7 @@ columns.value = [
   { title: '喜欢路径', dataIndex: 'favSavePath' },
   { title: '博主路径', dataIndex: 'upSavePath' },
   { title: '状态', dataIndex: 'status', width: 180 },
-  { title: '操作', dataIndex: 'edit', width: 200 },
+  { title: '操作', dataIndex: 'edit', width: 290 },
 ];
 
 interface UpSecUserIdItem {
@@ -147,6 +150,59 @@ function cancel() {
 }
 
 const formModel = ref<FormInstance>();
+
+const showQrLogin = ref(false);
+const qrLoginRecord = ref<DataItem | null>(null);
+const pendingCookieRecord = ref<DataItem | null>(null);
+const pendingQrResult = ref<QrLoginResult | null>(null);
+const showCookiePreview = ref(false);
+const resetCookieLoading = ref(false);
+
+// 扫码成功后先预览 Cookie，用户确认后再覆盖所选账号的 Cookie。
+const onQrLoginSuccess = (result: QrLoginResult) => {
+  pendingCookieRecord.value = qrLoginRecord.value;
+  pendingQrResult.value = result;
+  showCookiePreview.value = true;
+};
+
+const startQrLoginForRecord = (record: DataItem) => {
+  qrLoginRecord.value = record;
+  showQrLogin.value = true;
+};
+
+const clearCookiePreview = () => {
+  if (resetCookieLoading.value) return;
+  showCookiePreview.value = false;
+  pendingCookieRecord.value = null;
+  pendingQrResult.value = null;
+};
+
+const confirmFastResetCookie = async () => {
+  const record = pendingCookieRecord.value;
+  const cookie = pendingQrResult.value?.cookie;
+  if (!record?.id || !cookie) {
+    message.error('扫码结果或 Cookie 账号信息已失效，请重新扫码');
+    return;
+  }
+
+  resetCookieLoading.value = true;
+  try {
+    const res = await useApiStore().FastResetCookie({ id: record.id, cookie });
+    if (res.code === 0) {
+      message.success(`已覆盖【${record.userName || '该账号'}】的 Cookie`);
+      showCookiePreview.value = false;
+      pendingCookieRecord.value = null;
+      pendingQrResult.value = null;
+      GetRecords();
+    } else {
+      message.error(res.message || 'Cookie 覆盖失败');
+    }
+  } catch (err: any) {
+    message.error(err?.message || 'Cookie 覆盖失败，请稍后重试');
+  } finally {
+    resetCookieLoading.value = false;
+  }
+};
 
 const formLoading = ref(false);
 
@@ -602,6 +658,14 @@ const switchdownCollect = (e: any) => {
     </a-form>
   </a-modal>
 
+  <QrLoginModal v-model:visible="showQrLogin" @success="onQrLoginSuccess" />
+
+  <a-modal v-model:visible="showCookiePreview" title="确认更新 Cookie" ok-text="确认更新" cancel-text="取消" :confirm-loading="resetCookieLoading" :closable="!resetCookieLoading" :mask-closable="!resetCookieLoading" @ok="confirmFastResetCookie" @cancel="clearCookiePreview">
+    <p>将用扫码获取的 Cookie 覆盖账号「{{ pendingCookieRecord?.userName || '未命名' }}」当前 Cookie。</p>
+    <a-alert message="请确认这是要更新的账号。确认后会先校验 Cookie，再写入该账号。" type="warning" show-icon />
+    <a-textarea class="cookie-preview" :value="pendingQrResult?.cookie || ''" :rows="8" readonly />
+  </a-modal>
+
   <a-drawer :title="getDrawerTypeName()+'配置'" v-model:visible="showDrawer" placement="right" width="800px" :z-index="10010" :mask-z-index="10009" @close="closeDrawer" class="common-drawer">
     <template #extra>
       <a-button type="primary" :loading="drawerPagination.loading" @click="saveDrawerData" class="drawer-save-btn">
@@ -685,6 +749,12 @@ const switchdownCollect = (e: any) => {
         </div>
       </template>
       <template v-else-if="column.dataIndex === 'edit'">
+        <a-button :disabled="showModal || loading || resetCookieLoading" type="link" @click="startQrLoginForRecord(record)">
+          <template #icon>
+            <QrcodeOutlined />
+          </template>
+          扫码更新
+        </a-button>
         <a-button :disabled="showModal || loading" type="link" @click="edit(record)">
           <template #icon>
             <EditFilled />
@@ -716,6 +786,11 @@ const switchdownCollect = (e: any) => {
 .form-item-div-input {
   width: 180px;
   margin-left: 10px;
+}
+.cookie-preview {
+  margin-top: 16px;
+  font-family: monospace;
+  word-break: break-all;
 }
 
 :deep(.ant-input-textarea-input) {
