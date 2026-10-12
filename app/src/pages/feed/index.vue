@@ -1429,7 +1429,7 @@ onBeforeUnmount(() => {
     column-gap: 10px;
     min-height: 0;
     margin-bottom: 14px;
-    padding: 15px 14px 42px 52px;
+    padding: 16px 14px 14px 52px;
     border-radius: 14px;
   }
 
@@ -1458,15 +1458,15 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile .md-profile-main h1 {
-    font-size: 16px;
-    line-height: 1.25;
+    font-size: 18px;
+    line-height: 1.3;
     white-space: nowrap;
   }
 
   .standalone.profile-view .md-profile .md-profile-signature {
     max-width: 420px;
     margin: 3px 0 5px;
-    font-size: 11px;
+    font-size: 13px;
     -webkit-line-clamp: 1;
   }
 
@@ -1474,15 +1474,15 @@ onBeforeUnmount(() => {
     justify-content: flex-start;
     gap: 3px;
     margin-top: 0;
-    font-size: 9px;
+    font-size: 11px;
 
     span {
-      padding: 2px 5px;
+      padding: 3px 6px;
       white-space: nowrap;
     }
 
     strong {
-      font-size: 10px;
+      font-size: 12px;
     }
   }
 
