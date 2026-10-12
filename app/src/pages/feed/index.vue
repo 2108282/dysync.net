@@ -1423,71 +1423,74 @@ onBeforeUnmount(() => {
   }
 
   .standalone.profile-view .md-profile {
-    display: flex;
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
-    flex-direction: column;
-    gap: 10px;
+    column-gap: 10px;
+    row-gap: 6px;
     min-height: 0;
-    margin-bottom: 20px;
-    padding: 48px 18px 18px;
-    border-radius: 16px;
+    margin-bottom: 14px;
+    padding: 16px 14px 14px 52px;
+    border-radius: 14px;
   }
 
   .standalone.profile-view .md-profile-back {
     position: absolute;
-    top: 14px;
-    left: 12px;
-    width: 34px;
-    height: 34px;
+    top: 12px;
+    left: 10px;
+    width: 30px;
+    height: 30px;
   }
 
   .standalone.profile-view .md-profile-avatar {
-    order: 0;
-    width: 82px;
-    height: 82px;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 58px;
+    height: 58px;
   }
 
   .standalone.profile-view .md-profile-main {
-    order: 1;
+    grid-column: 2;
+    grid-row: 1;
     width: 100%;
-    flex: 0 0 auto;
-    text-align: center;
+    text-align: left;
   }
 
   .standalone.profile-view .md-profile-main h1 {
-    font-size: 18px;
-    line-height: 1.3;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    font-size: 16px;
+    line-height: 1.25;
+    white-space: nowrap;
   }
 
   .standalone.profile-view .md-profile-signature {
     max-width: 420px;
-    margin: 6px auto 9px;
-    font-size: 12px;
-    -webkit-line-clamp: 2;
+    margin: 3px 0 5px;
+    font-size: 11px;
+    -webkit-line-clamp: 1;
   }
 
   .standalone.profile-view .md-profile-stats {
-    justify-content: center;
-    gap: 5px;
+    justify-content: flex-start;
+    gap: 4px;
     margin-top: 0;
-    font-size: 11px;
+    font-size: 10px;
 
     span {
-      padding: 4px 7px;
+      padding: 3px 6px;
     }
 
     strong {
-      font-size: 12px;
+      font-size: 11px;
     }
   }
 
   .standalone.profile-view .md-profile-shuffle {
-    order: 2;
-    align-self: center;
-    padding: 7px 12px;
-    font-size: 12px;
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
+    padding: 5px 10px;
+    font-size: 11px;
   }
 
   .standalone.profile-view .md-profile-toolbar {
