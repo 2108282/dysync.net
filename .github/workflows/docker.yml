@@ -21,14 +21,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: app/yarn.lock
 
       - name: Build Frontend
         working-directory: app
         run: |
+          cp ../yarn.lock ./yarn.lock 2>/dev/null || true
           yarn install
-          yarn build
+          npx vite build
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -42,6 +41,7 @@ jobs:
       - name: Prepare Docker Context
         run: |
           cp -r publish/* .
+          rm -rf publish
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
