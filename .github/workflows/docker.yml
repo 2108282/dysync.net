@@ -20,13 +20,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Build Frontend
         working-directory: app
         run: |
           cp ../yarn.lock ./yarn.lock 2>/dev/null || true
-          yarn install
+          yarn install --ignore-engines
           npx vite build
 
       - name: Setup .NET SDK
