@@ -40,6 +40,9 @@ jobs:
       - name: Publish .NET Backend
         run: |
           dotnet publish dy.net.csproj -c Release -o ./publish
+          if [ ! -f ./publish/appsettings.json ]; then
+            cp appsettings-arm.json ./publish/appsettings.json
+          fi
 
       - name: Prepare Docker Context
         run: |
